@@ -1,4 +1,8 @@
 import express from 'express';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { createServer } from 'http';
+import { Server as SocketServer } from 'socket.io';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -11,15 +15,19 @@ import {
   writeDatabase,
   createGiveawayWithSeed,
   generateVerificationCode,
+  atomicParticipantLock,
 } from './server/db/repository.js';
 import { resolveCampaignSeed, repairMissingGiveawaySecrets } from './server/db/seedResolver.js';
 import { initFirestore, isFirestoreActive } from './server/db/firestoreStore.js';
 import { hashPassword, verifyPassword } from './server/auth/password.js';
+import { requireAuth, type AuthRequest } from './server/auth/middleware.js';
+import jwt from 'jsonwebtoken';
 import {
   sandboxVerifyWinner,
   computeDrawHash,
   buildTicketPool,
   pickWinnerIndex,
+  verifySeedAgainstHash,
 } from './server/crypto/provablyFair.js';
 import {
   enqueueBioScrapeJob,
@@ -28,6 +36,8 @@ import {
   shutdownScrapeQueue,
   isBullMqActive,
 } from './server/queue/scrapeQueue.js';
+import { scrapeFollowingList } from './server/scraper/instagramBio.js';
+import { sendWinnerEmail } from './server/services/email.js';
 import type { HostUser } from './server/db/types.js';
 
 function sanitizeHost(host: HostUser) {
@@ -40,21 +50,35 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = Number(process.env.PORT) || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
+
+function signHostToken(host: HostUser): string {
+  return jwt.sign({ hostId: host.id, email: host.email }, JWT_SECRET, { expiresIn: '7d' });
+}
 
 async function auditWinnerFollows(
   username: string,
   requiredProfiles: string[]
 ): Promise<{ passed: boolean; missingProfiles: string[] }> {
   if (requiredProfiles.length === 0) return { passed: true, missingProfiles: [] };
-  if (process.env.SCRAPER_SANDBOX === 'true') {
-    return { passed: true, missingProfiles: [] };
+  if (process.env.SCRAPER_SANDBOX === 'true') return { passed: true, missingProfiles: [] };
+
+  const result = await scrapeFollowingList(username);
+
+  if (!result.success) {
+    console.error(`[Draw Audit] Scrape failed for @${username}:`, result.error);
+    return { passed: false, missingProfiles: requiredProfiles };
   }
-  // Production: integrate Graph API / RapidAPI follow checks per profile.
-  // Until configured, do not randomly disqualify — log and pass audit.
-  console.warn(
-    `[Draw Audit] Follow check skipped for @${username} (${requiredProfiles.length} profiles). Configure RAPIDAPI_KEY for live audits.`
-  );
-  return { passed: true, missingProfiles: [] };
+
+  if (result.isPrivate) {
+    console.warn(`[Draw Audit] @${username} has private profile — cannot verify follows`);
+    return { passed: false, missingProfiles: requiredProfiles };
+  }
+
+  const followingSet = new Set(result.following.map((u) => u.toLowerCase()));
+  const missingProfiles = requiredProfiles.filter((p) => !followingSet.has(p.toLowerCase()));
+
+  return { passed: missingProfiles.length === 0, missingProfiles };
 }
 
 async function startServer() {
@@ -62,7 +86,33 @@ async function startServer() {
   await startScrapeQueue();
   await repairMissingGiveawaySecrets();
 
+  let io!: SocketServer;
+
   const app = express();
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+    })
+  );
+
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => process.env.NODE_ENV === 'test',
+    message: { error: 'Too many requests — slow down.' },
+  });
+
+  const authLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 10,
+    message: { error: 'Too many auth attempts. Try again in 10 minutes.' },
+  });
+
+  app.use('/api', apiLimiter);
+
   app.set('trust proxy', 1);
   app.use(express.json({ limit: '3mb' }));
 
@@ -127,7 +177,7 @@ async function startServer() {
     res.json(dbData.hosts);
   });
 
-  app.post('/api/hosts/register', async (req, res) => {
+  app.post('/api/hosts/register', authLimiter, async (req, res) => {
     const dbData = await readDatabase();
     const { email, username, password } = req.body;
     const normalizedEmail = String(email || '')
@@ -155,10 +205,11 @@ async function startServer() {
     };
     dbData.hosts.push(host);
     await writeDatabase(dbData);
-    res.status(201).json(sanitizeHost(host));
+    const token = signHostToken(host);
+    return res.status(201).json({ host: sanitizeHost(host), token });
   });
 
-  app.post('/api/hosts/login', async (req, res) => {
+  app.post('/api/hosts/login', authLimiter, async (req, res) => {
     const dbData = await readDatabase();
     const { email, password } = req.body;
     const normalizedEmail = String(email || '')
@@ -177,14 +228,16 @@ async function startServer() {
     if (!host.passwordHash) {
       host.passwordHash = hashPassword(String(password));
       await writeDatabase(dbData);
-      return res.json(sanitizeHost(host));
+      const token = signHostToken(host);
+      return res.json({ host: sanitizeHost(host), token });
     }
 
     if (!verifyPassword(String(password), host.passwordHash)) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    res.json(sanitizeHost(host));
+    const token = signHostToken(host);
+    return res.json({ host: sanitizeHost(host), token });
   });
 
   /** @deprecated Use /api/hosts/register or /api/hosts/login */
@@ -212,14 +265,17 @@ async function startServer() {
     return res.status(404).json({ error: 'Account not found. Please register first.' });
   });
 
-  app.post('/api/hosts/upgrade', async (req, res) => {
+  app.post('/api/hosts/upgrade', requireAuth, async (req: AuthRequest, res) => {
     const dbData = await readDatabase();
     const { hostId } = req.body;
-    const hostIdx = dbData.hosts.findIndex((h) => h.id === hostId);
+    if (hostId && hostId !== req.hostId) {
+      return res.status(403).json({ error: 'Forbidden: cannot upgrade another account.' });
+    }
+    const hostIdx = dbData.hosts.findIndex((h) => h.id === req.hostId);
     if (hostIdx !== -1) {
       dbData.hosts[hostIdx].plan = 'pro';
       await writeDatabase(dbData);
-      return res.json(dbData.hosts[hostIdx]);
+      return res.json(sanitizeHost(dbData.hosts[hostIdx]));
     }
     res.status(404).json({ error: 'Host user not found.' });
   });
@@ -240,7 +296,51 @@ async function startServer() {
     res.json(giveaway);
   });
 
-  app.post('/api/giveaway/create', async (req, res) => {
+  app.get('/api/giveaway/:slug/archive', async (req, res) => {
+    const dbData = await readDatabase();
+    const giveaway = dbData.giveaways.find((g) => g.slug === req.params.slug);
+    if (!giveaway) return res.status(404).json({ error: 'Giveaway not found' });
+    if (giveaway.status !== 'completed') {
+      return res.status(404).json({ error: 'Draw has not taken place yet.' });
+    }
+
+    const participants = dbData.participants.filter(
+      (p) => p.giveawayId === giveaway.id && p.verifiedAt
+    );
+    const logs = dbData.logs.filter((l) => l.giveawayId === giveaway.id);
+
+    const seedVerified = giveaway.seed
+      ? verifySeedAgainstHash(giveaway.seed, giveaway.seedHash)
+      : false;
+
+    const giveawayWithRounds = giveaway as typeof giveaway & {
+      rounds?: { winner: string; drawHash: string; winnerIndex: number }[];
+    };
+
+    res.json({
+      title: giveaway.title,
+      prize: giveaway.prize,
+      slug: giveaway.slug,
+      drawDate: giveaway.drawDate,
+      seedHash: giveaway.seedHash,
+      revealedSeed: giveaway.seed,
+      seedVerified,
+      winners: giveaway.winners || [],
+      disqualifiedList: giveaway.disqualifiedList || [],
+      rounds: giveawayWithRounds.rounds || [],
+      sortedParticipants: participants
+        .map((p) => ({
+          username: p.instagramUsername,
+          ticketNumber: p.ticketCount,
+          verifiedAt: p.verifiedAt,
+        }))
+        .sort((a, b) => a.username.localeCompare(b.username)),
+      verificationLog: logs,
+      totalParticipants: participants.length,
+    });
+  });
+
+  app.post('/api/giveaway/create', requireAuth, async (req: AuthRequest, res) => {
     const dbData = await readDatabase();
     const {
       hostId,
@@ -259,6 +359,10 @@ async function startServer() {
 
     if (!hostId || !title || !prize) {
       return res.status(400).json({ error: 'Missing mandatory giveaway variables (title and prize required).' });
+    }
+
+    if (hostId !== req.hostId) {
+      return res.status(403).json({ error: 'Forbidden: cannot create giveaway for another host.' });
     }
 
     const slugify = (text: string) => {
@@ -320,7 +424,7 @@ async function startServer() {
     res.json(newGiveaway);
   });
 
-  app.post('/api/giveaway/edit/:id', async (req, res) => {
+  app.post('/api/giveaway/edit/:id', requireAuth, async (req: AuthRequest, res) => {
     const dbData = await readDatabase();
     const { id } = req.params;
     const { title, prize, prizeDescription, prizeImageURL, maxParticipants, requiredProfiles, numWinners } =
@@ -329,6 +433,9 @@ async function startServer() {
     if (idx === -1) return res.status(404).json({ error: 'Giveaway not found' });
 
     const g = dbData.giveaways[idx];
+    if (g.hostId !== req.hostId) {
+      return res.status(403).json({ error: 'Forbidden: you do not own this giveaway.' });
+    }
     g.title = title || g.title;
     g.prize = prize || g.prize;
     g.prizeDescription = prizeDescription || g.prizeDescription;
@@ -344,9 +451,14 @@ async function startServer() {
     res.json(g);
   });
 
-  app.delete('/api/giveaway/:id', async (req, res) => {
+  app.delete('/api/giveaway/:id', requireAuth, async (req: AuthRequest, res) => {
     const dbData = await readDatabase();
     const { id } = req.params;
+    const giveaway = dbData.giveaways.find((g) => g.id === id);
+    if (!giveaway) return res.status(404).json({ error: 'Giveaway not found' });
+    if (giveaway.hostId !== req.hostId) {
+      return res.status(403).json({ error: 'Forbidden: you do not own this giveaway.' });
+    }
     dbData.giveaways = dbData.giveaways.filter((g) => g.id !== id);
     dbData.participants = dbData.participants.filter((p) => p.giveawayId !== id);
     await writeDatabase(dbData);
@@ -368,7 +480,7 @@ async function startServer() {
   });
 
   app.post('/api/participants/join-request', async (req, res) => {
-    const dbData = await readDatabase();
+    let dbData = await readDatabase();
     const { instagramUsername, giveawayId, referredBy, email } = req.body;
     const clientIp = req.ip || '127.0.0.1';
 
@@ -484,7 +596,16 @@ async function startServer() {
         email: normalizedEmail,
         joinedAt: new Date().toISOString(),
       };
-      dbData.participants.push(entry);
+      const lockResult = await atomicParticipantLock(giveawayId, handle, entry);
+      if (!lockResult.success) {
+        return res.status(400).json({ error: lockResult.error || 'Registration failed.' });
+      }
+      dbData = await readDatabase();
+      const refreshedGiveaway = dbData.giveaways.find((g) => g.id === giveawayId);
+      if (!refreshedGiveaway) {
+        return res.status(404).json({ error: 'Giveaway does not exist.' });
+      }
+      Object.assign(giveaway, refreshedGiveaway);
     }
 
     if (referredBy) giveaway.trafficSources.referral++;
@@ -550,12 +671,15 @@ async function startServer() {
     res.json(status);
   });
 
-  app.post('/api/giveaway/draw-start/:id', async (req, res) => {
+  app.post('/api/giveaway/draw-start/:id', requireAuth, async (req: AuthRequest, res) => {
     const dbData = await readDatabase();
     const { id } = req.params;
     const giveaway = dbData.giveaways.find((g) => g.id === id);
 
     if (!giveaway) return res.status(404).json({ error: 'Giveaway campaign not found' });
+    if (giveaway.hostId !== req.hostId) {
+      return res.status(403).json({ error: 'Forbidden: you do not own this giveaway.' });
+    }
 
     const verifiedParticipants = dbData.participants.filter(
       (p) => p.giveawayId === id && p.verifiedAt !== null
@@ -567,6 +691,11 @@ async function startServer() {
     giveaway.status = 'drawing';
     await writeDatabase(dbData);
 
+    io.to(id).emit('draw:started', {
+      totalParticipants: verifiedParticipants.length,
+      giveawayTitle: giveaway.title,
+    });
+
     const secretCampaignSeed = await resolveCampaignSeed(id, giveaway.seedHash);
     if (!secretCampaignSeed) {
       return res.status(500).json({
@@ -574,6 +703,12 @@ async function startServer() {
           'Campaign draw secret is missing or corrupted. Delete and recreate the giveaway, or restart the server to auto-repair seeds.',
       });
     }
+
+    io.to(id).emit('draw:seed_revealed', {
+      seed: secretCampaignSeed,
+      seedHash: giveaway.seedHash,
+      sortedPool: buildTicketPool(verifiedParticipants),
+    });
 
     let drawingRoster = buildTicketPool(verifiedParticipants);
     const ticketPool = [...drawingRoster];
@@ -587,6 +722,14 @@ async function startServer() {
       const drawHash = computeDrawHash(secretCampaignSeed, drawingRoster);
       rounds.push({ winner: targetCandidateUsername, drawHash, winnerIndex });
 
+      io.to(id).emit('draw:winner_drawn', {
+        username: targetCandidateUsername,
+        drawHash,
+        winnerIndex,
+        roundNumber: winnersChosen.length + disqualifiedCandidates.length + 1,
+      });
+      io.to(id).emit('draw:verifying', { username: targetCandidateUsername });
+
       const audit = await auditWinnerFollows(
         targetCandidateUsername,
         giveaway.requiredProfiles
@@ -594,6 +737,11 @@ async function startServer() {
 
       if (audit.passed) {
         winnersChosen.push(targetCandidateUsername);
+        io.to(id).emit('draw:winner_verified', {
+          username: targetCandidateUsername,
+          passed: true,
+          missingProfiles: [],
+        });
         drawingRoster = drawingRoster.filter((u) => u !== targetCandidateUsername);
         dbData.logs.unshift({
           id: 'log_' + Date.now(),
@@ -608,6 +756,11 @@ async function startServer() {
         disqualifiedCandidates.push({
           username: targetCandidateUsername,
           reason: `Missing follow: @${audit.missingProfiles[0] || 'required'}`,
+        });
+        io.to(id).emit('draw:winner_verified', {
+          username: targetCandidateUsername,
+          passed: false,
+          missingProfiles: audit.missingProfiles,
         });
         drawingRoster = drawingRoster.filter((u) => u !== targetCandidateUsername);
         dbData.logs.unshift({
@@ -627,6 +780,28 @@ async function startServer() {
     giveaway.winners = winnersChosen;
     giveaway.disqualifiedList = disqualifiedCandidates;
     await writeDatabase(dbData);
+
+    for (const winnerUsername of winnersChosen) {
+      const winnerParticipant = dbData.participants.find(
+        (p) => p.giveawayId === id && p.instagramUsername === winnerUsername && p.email
+      );
+      if (winnerParticipant?.email) {
+        const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+        await sendWinnerEmail({
+          to: winnerParticipant.email,
+          winnerUsername,
+          giveawayTitle: giveaway.title,
+          prize: giveaway.prize,
+          archiveUrl: `${baseUrl}/giveaway/${giveaway.slug}/archive`,
+        });
+      }
+    }
+
+    io.to(id).emit('draw:completed', {
+      winners: winnersChosen,
+      disqualifiedList: disqualifiedCandidates,
+      revealedSeed: secretCampaignSeed,
+    });
 
     res.json({
       winners: winnersChosen,
@@ -712,7 +887,19 @@ async function startServer() {
     });
   }
 
-  const server = app.listen(PORT, '0.0.0.0', () => {
+  const httpServer = createServer(app);
+  io = new SocketServer(httpServer, {
+    cors: { origin: '*', credentials: true },
+    connectionStateRecovery: { maxDisconnectionDuration: 2 * 60 * 1000 },
+  });
+
+  io.on('connection', (socket) => {
+    socket.on('join:giveaway', ({ giveawayId }: { giveawayId: string }) => {
+      socket.join(giveawayId);
+    });
+  });
+
+  const server = httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`[Lootly Server] Live on http://localhost:${PORT}`);
   });
 

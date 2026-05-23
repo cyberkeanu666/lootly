@@ -11,18 +11,49 @@ import {
 import { readLocalDatabase, readLocalSecret, writeLocalDatabase, writeLocalSecret } from './localStore.js';
 import { generateCampaignSeed, hashSeed } from '../crypto/provablyFair.js';
 
+const EMPTY_DB: LocalDatabaseSchema = {
+  hosts: [],
+  giveaways: [],
+  participants: [],
+  logs: [],
+  referrals: [],
+};
+
 let memoryCache: LocalDatabaseSchema | null = null;
+
+/** Serializes JSON-path participant writes per giveaway + username. */
+const jsonMutexChains = new Map<string, Promise<void>>();
+
+async function withJsonMutex<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prev = jsonMutexChains.get(key) ?? Promise.resolve();
+  let unlock!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    unlock = resolve;
+  });
+  const next = prev.then(() => gate);
+  jsonMutexChains.set(key, next);
+
+  await prev;
+  try {
+    return await fn();
+  } finally {
+    unlock();
+    if (jsonMutexChains.get(key) === next) {
+      jsonMutexChains.delete(key);
+    }
+  }
+}
 
 export async function readDatabase(): Promise<LocalDatabaseSchema> {
   initFirestore();
+
   if (isFirestoreActive()) {
     const remote = await loadFullDatabaseFromFirestore();
-    if (remote && remote.giveaways.length > 0) {
-      memoryCache = remote;
-      writeLocalDatabase(remote);
-      return remote;
-    }
+    const data: LocalDatabaseSchema = remote ?? { ...EMPTY_DB };
+    memoryCache = data;
+    return data;
   }
+
   const local = readLocalDatabase();
   memoryCache = local;
   return local;
@@ -30,8 +61,14 @@ export async function readDatabase(): Promise<LocalDatabaseSchema> {
 
 export async function writeDatabase(data: LocalDatabaseSchema): Promise<void> {
   memoryCache = data;
+
+  initFirestore();
+  if (isFirestoreActive()) {
+    await mirrorDatabaseToFirestore(data);
+    return;
+  }
+
   writeLocalDatabase(data);
-  await mirrorDatabaseToFirestore(data);
 }
 
 export async function getCampaignSeed(giveawayId: string): Promise<string | null> {
@@ -43,6 +80,79 @@ export async function getCampaignSeed(giveawayId: string): Promise<string | null
 export async function storeCampaignSeed(giveawayId: string, seed: string): Promise<void> {
   writeLocalSecret(giveawayId, seed);
   await saveGiveawaySecret(giveawayId, seed);
+}
+
+/**
+ * Atomically register a participant if the username is not already verified
+ * for this giveaway (prevents concurrent join race conditions).
+ */
+export async function atomicParticipantLock(
+  giveawayId: string,
+  instagramUsername: string,
+  newParticipant: Participant
+): Promise<{ success: boolean; error?: string }> {
+  const handle = instagramUsername.replace('@', '').trim().toLowerCase();
+
+  initFirestore();
+  if (isFirestoreActive()) {
+    const { db } = initFirestore();
+    if (!db) {
+      return { success: false, error: 'Firestore unavailable.' };
+    }
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const conflictQuery = db
+          .collection('participants')
+          .where('giveawayId', '==', giveawayId)
+          .where('instagramUsername', '==', handle);
+        const conflictSnap = await tx.get(conflictQuery);
+
+        const verifiedConflict = conflictSnap.docs.some(
+          (doc) => !!(doc.data() as Participant).verifiedAt
+        );
+        if (verifiedConflict) {
+          throw new Error('USERNAME_VERIFIED');
+        }
+
+        tx.set(db.collection('participants').doc(newParticipant.id), newParticipant);
+      });
+      return { success: true };
+    } catch (err) {
+      if (err instanceof Error && err.message === 'USERNAME_VERIFIED') {
+        return {
+          success: false,
+          error: `Instagram user @${handle} is already verified in this giveaway.`,
+        };
+      }
+      console.error('[atomicParticipantLock] Firestore transaction failed:', err);
+      return { success: false, error: 'Could not register participant atomically.' };
+    }
+  }
+
+  const lockKey = `${giveawayId}:${handle}`;
+  return withJsonMutex(lockKey, async () => {
+    const db = await readDatabase();
+    const verifiedConflict = db.participants.some(
+      (p) =>
+        p.giveawayId === giveawayId &&
+        p.instagramUsername === handle &&
+        p.verifiedAt !== null
+    );
+    if (verifiedConflict) {
+      return {
+        success: false,
+        error: `Instagram user @${handle} is already verified in this giveaway.`,
+      };
+    }
+
+    const alreadyPending = db.participants.some((p) => p.id === newParticipant.id);
+    if (!alreadyPending) {
+      db.participants.push(newParticipant);
+    }
+    await writeDatabase(db);
+    return { success: true };
+  });
 }
 
 export async function createGiveawayWithSeed(

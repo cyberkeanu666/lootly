@@ -10,8 +10,8 @@ export interface AuthModalProps {
     email: string,
     username: string,
     password: string
-  ) => Promise<{ error?: string }>;
-  onLoginHost: (email: string, password: string) => Promise<{ error?: string }>;
+  ) => Promise<{ error?: string; success?: boolean }>;
+  onLoginHost: (email: string, password: string) => Promise<{ error?: string; success?: boolean }>;
 }
 
 export default function AuthModal({
@@ -50,9 +50,13 @@ export default function AuthModal({
     setAuthLoading(false);
     if (result?.error) {
       setAuthError(result.error);
-    } else {
-      onClose();
+      return;
+    }
+    if (result?.success) {
       setPassword('');
+      setEmail('');
+      setUsername('');
+      onClose();
     }
   };
 

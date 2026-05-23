@@ -28,8 +28,9 @@ import type { Locale } from './i18n/types';
 import LandingPage from './components/LandingPage';
 import HostDashboard from './components/HostDashboard';
 import GiveawayPage from './components/GiveawayPage';
-import LiveDrawPage from './components/LiveDrawPage';
-import ArchivePage from './components/ArchivePage';
+import DrawPage from './pages/DrawPage';
+import ArchivePage from './pages/ArchivePage';
+import VerifyPage from './pages/VerifyPage';
 import EmbedWidget from './components/EmbedWidget';
 import DocumentationPage from './components/DocumentationPage';
 import HowItWorksPage from './components/HowItWorksPage';
@@ -38,16 +39,20 @@ import AuthModal from './components/AuthModal';
 import HostNotifications from './components/HostNotifications';
 import LiveChatFab from './components/LiveChatFab';
 import { useLootlyUI } from './components/LootlyUI';
+import {
+  authFetch,
+  clearAuthSession,
+  loadStoredHost,
+  parseAuthResponse,
+  storeAuthSession,
+} from './utils/authHeaders';
 
 export default function App() {
   const { t, locale, setLocale } = useI18n();
   const { showToast, confirm } = useLootlyUI();
 
-  // Host Session State
-  const [host, setHost] = useState<HostUser | null>(() => {
-    const saved = localStorage.getItem('lootly_host');
-    return saved ? JSON.parse(saved) : null;
-  });
+  // Host Session State (requires JWT + host profile in localStorage)
+  const [host, setHost] = useState<HostUser | null>(() => loadStoredHost());
 
   // Navigation Route state
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
@@ -131,6 +136,20 @@ export default function App() {
     return () => clearInterval(activePoll);
   }, [currentRoute, host?.id]);
 
+  const handleSessionExpired = () => {
+    setHost(null);
+    clearAuthSession();
+    showToast(t('auth.loginPrompt'), 'warning');
+    setCurrentRoute('/');
+  };
+
+  const completeAuth = (session: { host: HostUser; token: string }) => {
+    setHost(session.host);
+    storeAuthSession(session.host, session.token);
+    setAuthModal({ open: false, mode: 'login' });
+    setCurrentRoute('/dashboard');
+  };
+
   const handleHostRegister = async (
     email: string,
     username: string,
@@ -144,10 +163,11 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) return { error: data.error || t('authForm.registerFailed') };
-      setHost(data);
-      localStorage.setItem('lootly_host', JSON.stringify(data));
-      setCurrentRoute('/dashboard');
-      return {};
+      const parsed = parseAuthResponse(data);
+      if (!parsed) return { error: t('authForm.registerFailed') };
+      if ('error' in parsed) return { error: parsed.error };
+      completeAuth(parsed);
+      return { success: true };
     } catch {
       return { error: t('authForm.registerFailed') };
     }
@@ -162,10 +182,11 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) return { error: data.error || t('authForm.loginFailed') };
-      setHost(data);
-      localStorage.setItem('lootly_host', JSON.stringify(data));
-      setCurrentRoute('/dashboard');
-      return {};
+      const parsed = parseAuthResponse(data);
+      if (!parsed) return { error: t('authForm.loginFailed') };
+      if ('error' in parsed) return { error: parsed.error };
+      completeAuth(parsed);
+      return { success: true };
     } catch {
       return { error: t('authForm.loginFailed') };
     }
@@ -177,7 +198,7 @@ export default function App() {
 
   const handleLogOutHost = () => {
     setHost(null);
-    localStorage.removeItem('lootly_host');
+    clearAuthSession();
     setCurrentRoute('/');
   };
 
@@ -185,14 +206,17 @@ export default function App() {
   const handleCreateGiveaway = async (payload: Partial<Giveaway>) => {
     if (!host) return { error: 'No authenticated creator session detected.' };
     try {
-      const res = await fetch('/api/giveaway/create', {
+      const res = await authFetch('/api/giveaway/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           hostId: host.id,
           ...payload
         })
       });
+      if (res.status === 401) {
+        handleSessionExpired();
+        return { error: t('auth.loginPrompt') };
+      }
       const data = await res.json();
       if (!res.ok) {
         return { error: data.error || 'Server rejected publication.' };
@@ -209,7 +233,11 @@ export default function App() {
     const ok = await confirm(t('ui.deleteCampaignConfirm'));
     if (!ok) return;
     try {
-      await fetch(`/api/giveaway/${id}`, { method: 'DELETE' });
+      const res = await authFetch(`/api/giveaway/${id}`, { method: 'DELETE' });
+      if (res.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       fetchGlobalState();
     } catch (err) {
       console.error(err);
@@ -298,9 +326,13 @@ export default function App() {
     if (!giveawayMatch) return { error: 'Campaign slug resolution failed.' };
 
     try {
-      const res = await fetch(`/api/giveaway/draw-start/${giveawayMatch.id}`, {
-        method: 'POST'
+      const res = await authFetch(`/api/giveaway/draw-start/${giveawayMatch.id}`, {
+        method: 'POST',
       });
+      if (res.status === 401) {
+        handleSessionExpired();
+        return { error: t('auth.loginPrompt') };
+      }
       const data = await res.json();
       fetchGlobalState();
       return data;
@@ -345,6 +377,10 @@ export default function App() {
 
     if (currentRoute === '/guide' || currentRoute === '/how-it-works') {
       return <HowItWorksPage onSelectRoute={setCurrentRoute} />;
+    }
+
+    if (currentRoute === '/verify') {
+      return <VerifyPage />;
     }
 
     if (currentRoute === '/live-draw') {
@@ -416,6 +452,11 @@ export default function App() {
     // Specifc Sweepstakes Path parses
     if (parts[0] === 'giveaway' && parts[1]) {
       const slugName = parts[1];
+
+      if (parts[2] === 'archive') {
+        return <ArchivePage slug={slugName} />;
+      }
+
       const giveawayMatch = giveaways.find(g => g.slug === slugName);
 
       if (!giveawayMatch) {
@@ -467,23 +508,7 @@ export default function App() {
           );
         }
         return (
-          <LiveDrawPage
-            giveaway={giveawayMatch}
-            participants={participants}
-            onTriggerDrawStart={handleTriggerSweepstakeDraw}
-            onSelectRoute={setCurrentRoute}
-          />
-        );
-      }
-
-      // Proof evidence details
-      if (parts[2] === 'archive') {
-        return (
-          <ArchivePage
-            giveaway={giveawayMatch}
-            participants={participants}
-            onSelectRoute={setCurrentRoute}
-          />
+          <DrawPage slug={slugName} onSelectRoute={setCurrentRoute} />
         );
       }
 

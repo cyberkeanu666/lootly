@@ -9,8 +9,8 @@ interface LandingPageProps {
     email: string,
     username: string,
     password: string
-  ) => Promise<{ error?: string }>;
-  onLoginHost: (email: string, password: string) => Promise<{ error?: string }>;
+  ) => Promise<{ error?: string; success?: boolean }>;
+  onLoginHost: (email: string, password: string) => Promise<{ error?: string; success?: boolean }>;
   onGoDashboard: () => void;
   onRequestUpgrade: () => void;
   onOpenAuth: (mode: 'login' | 'register') => void;

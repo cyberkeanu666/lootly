@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lootly — Cursor Task Board v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Unbounded:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#03050a; --bg2:#080d18; --bg3:#0d1525; --bg4:#121e35;
+    --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.13);
+    --red:#ff3b3b; --orange:#ff8c00; --yellow:#f5c842;
+    --green:#00e87a; --blue:#3b9eff; --cyan:#00d4ff;
+    --text:#e8edf5; --muted:#4a5568; --muted2:#8899aa;
+    --mono:'JetBrains Mono',monospace; --head:'Unbounded',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.012) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+  body::after{content:'';position:fixed;top:-250px;left:50%;transform:translateX(-50%);width:1000px;height:600px;background:radial-gradient(ellipse,rgba(255,59,59,0.05) 0%,transparent 65%);pointer-events:none;z-index:0;}
+
+  .wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 24px 100px;}
+
+  /* HEADER */
+  header{padding:52px 0 44px;border-bottom:1px solid var(--border2);margin-bottom:44px;}
+  .hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+  .logo{font-family:var(--head);font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
+  .logo span{color:var(--red);}
+  h1{font-family:var(--head);font-size:clamp(26px,4.5vw,44px);font-weight:900;line-height:1.05;letter-spacing:-1px;}
+  h1 em{font-style:normal;color:var(--red);}
+  .hsub{margin-top:10px;color:var(--muted2);font-size:12px;max-width:460px;line-height:1.9;}
+  .hsub strong{color:var(--cyan);}
+
+  .stats{display:flex;gap:1px;background:var(--border);border:1px solid var(--border2);border-radius:10px;overflow:hidden;flex-shrink:0;align-self:flex-end;}
+  .sbox{padding:14px 22px;background:var(--bg2);text-align:center;min-width:84px;}
+  .sn{font-family:var(--head);font-size:20px;font-weight:700;display:block;}
+  .sn.r{color:var(--red);} .sn.o{color:var(--orange);} .sn.y{color:var(--yellow);} .sn.g{color:var(--green);}
+  .sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;display:block;}
+
+  /* REPO STRUCTURE BOX */
+  .repo-box{background:var(--bg2);border:1px solid rgba(0,212,255,0.2);border-radius:12px;padding:20px 24px;margin-bottom:40px;}
+  .repo-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .repo-title::before{content:'📁';}
+  .repo-tree{font-size:11.5px;color:var(--muted2);line-height:2;columns:2;gap:32px;}
+  .repo-tree .f{color:var(--text);}
+  .repo-tree .d{color:var(--cyan);}
+  .repo-tree .hi{color:var(--red);}
+
+  /* FILTER */
+  .fbar{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;align-items:center;}
+  .flabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-right:4px;}
+  .fbtn{padding:5px 13px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;}
+  .fbtn:hover{color:var(--text);background:var(--bg3);}
+  .fbtn.on{background:var(--red);border-color:var(--red);color:#fff;}
+  .fbtn.on.oo{background:var(--orange);border-color:var(--orange);}
+  .fbtn.on.oy{background:var(--yellow);border-color:var(--yellow);color:#000;}
+  .fbtn.on.og{background:var(--green);border-color:var(--green);color:#000;}
+  .fbtn.on.oc{background:var(--cyan);border-color:var(--cyan);color:#000;}
+
+  /* SECTION */
+  .sec{margin-bottom:44px;}
+  .sectitle{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .sectxt{font-family:var(--head);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted2);}
+  .seccnt{font-size:10px;padding:2px 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);}
+
+  /* TASK CARD */
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,transform .2s;position:relative;}
+  .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px;}
+  .card.c::before{background:var(--red);}
+  .card.h::before{background:var(--orange);}
+  .card.m::before{background:var(--yellow);}
+  .card:hover{border-color:var(--border2);transform:translateX(2px);}
+  .card.done-card{opacity:.4;}
+  .card.done-card .ctitle{text-decoration:line-through;color:var(--muted);}
+  .hidden{display:none!important;}
+
+  /* CARD HEADER */
+  .ch{padding:16px 18px 14px 22px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;user-select:none;}
+  .cbox{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);flex-shrink:0;margin-top:2px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--bg3);font-weight:700;}
+  .cbox:hover{border-color:var(--green);}
+  .cbox.ticked{background:var(--green);border-color:var(--green);color:#000;}
+  .cmeta{flex:1;}
+  .ctop{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+  .cid{font-size:10px;color:var(--muted);letter-spacing:1px;}
+  .pbadge{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;padding:2px 7px;border-radius:4px;font-weight:700;}
+  .pc{background:rgba(255,59,59,.14);color:var(--red);border:1px solid rgba(255,59,59,.28);}
+  .ph{background:rgba(255,140,0,.14);color:var(--orange);border:1px solid rgba(255,140,0,.28);}
+  .pm{background:rgba(245,200,66,.1);color:var(--yellow);border:1px solid rgba(245,200,66,.22);}
+  .ftag{font-size:10px;color:var(--cyan);background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.16);padding:2px 7px;border-radius:4px;}
+  .ftag.exists{color:#a8c4e0;background:rgba(168,196,224,.06);border-color:rgba(168,196,224,.14);}
+  .ctitle{font-family:var(--head);font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4;}
+  .cdesc{font-size:12px;color:var(--muted2);line-height:1.6;}
+  .ctog{color:var(--muted);font-size:15px;flex-shrink:0;transition:transform .3s;margin-top:3px;}
+  .ctog.open{transform:rotate(180deg);}
+
+  /* CARD BODY */
+  .cbody{display:none;border-top:1px solid var(--border);background:var(--bg3);}
+  .cbody.open{display:block;}
+  .cbin{padding:18px 22px;}
+
+  /* WHAT EXISTS */
+  .exists-box{background:rgba(0,232,122,.04);border:1px solid rgba(0,232,122,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#6ee7b7;line-height:1.8;}
+  .exists-box strong{color:var(--green);}
+
+  /* TODO LIST */
+  .todos{list-style:none;margin-bottom:18px;}
+  .ti{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted2);align-items:flex-start;}
+  .ti:last-child{border-bottom:none;}
+  .arr{color:var(--red);flex-shrink:0;margin-top:1px;font-style:normal;}
+  .arr.ok{color:var(--green);}
+  .arr.w{color:var(--orange);}
+
+  /* CODE */
+  .csnip{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:13px 16px;font-size:11.5px;color:#a8c4e0;overflow-x:auto;margin:10px 0;line-height:1.9;}
+  .csnip .k{color:#79b8ff;} .csnip .s{color:#9ecbff;} .csnip .c{color:#3d4f5e;font-style:italic;}
+  .csnip .fn{color:#b392f0;} .csnip .v{color:#ffab70;}
+  .csnip .bad{color:var(--red);} .csnip .good{color:var(--green);}
+
+  /* PROMPT */
+  .psec{margin-top:18px;border:1px solid rgba(0,212,255,.18);border-radius:10px;overflow:hidden;}
+  .phead{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,212,255,.05);border-bottom:1px solid rgba(0,212,255,.13);}
+  .plabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);font-weight:700;display:flex;align-items:center;gap:6px;}
+  .plabel::before{content:'⌘';}
+  .copybtn{display:flex;align-items:center;gap:5px;padding:5px 14px;background:var(--cyan);color:#000;border:none;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+  .copybtn:hover{background:#fff;transform:scale(1.03);}
+  .copybtn.ok{background:var(--green);}
+  .ptext{padding:14px 16px;font-size:11.5px;color:#a8c4e0;line-height:1.95;white-space:pre-wrap;word-break:break-word;background:var(--bg);max-height:340px;overflow-y:auto;}
+  .ptext::-webkit-scrollbar{width:3px;}
+  .ptext::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+  /* FOOTER BAR */
+  .pbar-wrap{position:fixed;bottom:0;left:0;right:0;background:rgba(3,5,10,.96);border-top:1px solid var(--border2);backdrop-filter:blur(20px);padding:11px 24px;display:flex;align-items:center;gap:18px;z-index:100;}
+  .pbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);white-space:nowrap;}
+  .pbbar{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+  .pbfill{height:100%;background:linear-gradient(90deg,var(--red),var(--orange),var(--green));border-radius:2px;width:0%;transition:width .7s ease;}
+  .pbpct{font-family:var(--head);font-size:12px;color:var(--text);white-space:nowrap;min-width:48px;}
+  .pbcnt{font-size:10px;color:var(--muted2);white-space:nowrap;}
+
+  ::-webkit-scrollbar{width:5px;height:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+
+  @media(max-width:640px){h1{font-size:24px;}.stats{width:100%;}.sbox{flex:1;}.repo-tree{columns:1;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<header>
+  <div class="hrow">
+    <div>
+      <div class="logo">Loot<span>ly</span> — Cursor Task Board <span style="color:var(--green)">v2</span></div>
+      <h1>Precizni promptovi<br><em>za tvoj kod</em></h1>
+      <p class="hsub">Svaki prompt referencira <strong>tačne fajlove iz tvog repo-a</strong>. Otvori fajl u Cursor-u → nalepi prompt → pokreni.</p>
+    </div>
+    <div class="stats">
+      <div class="sbox"><span class="sn r" id="cnt-c">3</span><span class="sl">Kritično</span></div>
+      <div class="sbox"><span class="sn o" id="cnt-h">3</span><span class="sl">Visoko</span></div>
+      <div class="sbox"><span class="sn y" id="cnt-m">3</span><span class="sl">Srednje</span></div>
+      <div class="sbox"><span class="sn g" id="cnt-d">0</span><span class="sl">Završeno</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- REPO STRUCTURE -->
+<div class="repo-box">
+  <div class="repo-title">Tvoja stvarna struktura fajlova</div>
+  <div class="repo-tree">
+    <div><span class="d">server/</span></div>
+    <div>&nbsp;&nbsp;<span class="d">auth/</span><span class="f"> password.ts</span></div>
+    <div>&nbsp;&nbsp;<span class="d">crypto/</span><span class="f hi"> provablyFair.ts</span></div>
+    <div>&nbsp;&nbsp;<span class="d">db/</span><span class="f"> firestoreStore.ts</span></div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="f"> localStore.ts · repository.ts</span></div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="f"> seedResolver.ts · types.ts</span></div>
+    <div>&nbsp;&nbsp;<span class="d">queue/</span><span class="f hi"> scrapeQueue.ts</span></div>
+    <div>&nbsp;&nbsp;<span class="d">scraper/</span><span class="f hi"> instagramBio.ts</span></div>
+    <div><span class="f hi">server.ts</span></div>
+    <div><span class="d">src/</span></div>
+    <div>&nbsp;&nbsp;<span class="f"> data.ts · i18n/ · utils/</span></div>
+    <div>&nbsp;&nbsp;<span class="f"> hostNotifications.ts</span></div>
+    <div><span class="f"> vite.config.ts · tsconfig.json</span></div>
+    <div><span class="f"> package.json · .env.example</span></div>
+  </div>
+</div>
+
+<!-- FILTER -->
+<div class="fbar">
+  <span class="flabel">Filter:</span>
+  <button class="fbtn on oc" onclick="doFilter('all',this)">Sve</button>
+  <button class="fbtn" onclick="doFilter('c',this)">🔴 Kritično</button>
+  <button class="fbtn" onclick="doFilter('h',this)">🟠 Visoko</button>
+  <button class="fbtn" onclick="doFilter('m',this)">🟡 Srednje</button>
+  <button class="fbtn" onclick="doFilter('done',this)">✅ Završeno</button>
+</div>
+
+<!-- ══════════════ CRITICAL ══════════════ -->
+<div class="sec">
+  <div class="sectitle">
+    <span style="color:var(--red);font-size:15px">●</span>
+    <span class="sectxt">Kritično — Blokira sve ostalo</span>
+    <span class="seccnt" id="sc-c">3 taskova</span>
+  </div>
+
+  <!-- #01 -->
+  <div class="card c" data-p="c" id="t01">
+    <div class="ch" onclick="tog('t01')">
+      <div class="cbox" onclick="tick(event,'t01')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#01</span>
+          <span class="pbadge pc">KRITIČNO</span>
+          <span class="ftag exists">server.ts</span>
+          <span class="ftag exists">server/scraper/instagramBio.ts ✓</span>
+        </div>
+        <div class="ctitle">Follow verifikacija je FAKE — auditWinnerFollows() uvek vraća passed: true</div>
+        <div class="cdesc">instagramBio.ts već scrape-uje bio — ali niko ne scrape-uje following listu. Pobednik uvek prolazi verifikaciju bez provere.</div>
+      </div>
+      <div class="ctog" id="tog-t01">▾</div>
+    </div>
+    <div class="cbody" id="b-t01">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ Već postoji:</strong> <code>server/scraper/instagramBio.ts</code> — Puppeteer + RapidAPI fallback infrastruktura je kompletna.<br>
+          <strong>✓ Već postoji:</strong> <code>server.ts</code> → funkcija <code>auditWinnerFollows()</code> na liniji ~35 — samo treba zameniti stub sa pravim pozivom.<br>
+          <strong>✓ Već postoji:</strong> <code>SCRAPER_SANDBOX=true</code> u .env.example — sandbox mod radi lokalno bez scrape-a.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>Dodati novu funkciju <code>scrapeFollowingList(username)</code> u <code>server/scraper/instagramBio.ts</code> koja otvara instagram.com/{username}/following/ i vraća listu usernames</span></li>
+          <li class="ti"><i class="arr">→</i><span>U <code>server.ts</code>, zameniti stub u <code>auditWinnerFollows()</code> sa pozivom nove funkcije</span></li>
+          <li class="ti"><i class="arr ok">✓</i><span>Sandbox fallback već postoji — ako SCRAPER_SANDBOX=true, preskočiti scraping (lokalni dev)</span></li>
+          <li class="ti"><i class="arr w">→</i><span>Ako je profil privatan → automatski disqualify (ne možemo proveriti following)</span></li>
+        </ul>
+        <div class="csnip"><span class="c">// server.ts — TRENUTNO (stub koji ništa ne proverava)</span>
+<span class="bad">async function auditWinnerFollows(username, requiredProfiles) {
+  console.warn(`[Draw Audit] Follow check skipped for @${username}`);
+  return { passed: true, missingProfiles: [] }; // ← UVEK PROLAZI
+}</span>
+
+<span class="c">// server/scraper/instagramBio.ts — TREBA DODATI</span>
+<span class="good">export async function scrapeFollowingList(username: string): Promise<string[]>
+// Otvori instagram.com/{username}/following/
+// Vrati niz usernames koje taj profil prati</span></div>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p01')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p01">I need you to fix the follow verification system in this project. Here is the exact situation:
+
+EXISTING FILES (do not recreate, modify these):
+- server/scraper/instagramBio.ts — already has scrapeWithPuppeteer() and scrapeWithRapidApi() functions, USER_AGENT constant, and normalizeBioForMatch() helper. The file exports scrapeInstagramBioForCode().
+- server.ts — has a stub function auditWinnerFollows(username, requiredProfiles) around line 35 that always returns { passed: true, missingProfiles: [] } with just a console.warn. This is what needs to be fixed.
+
+WHAT TO DO:
+
+1. In server/scraper/instagramBio.ts, add a new exported function below the existing ones:
+
+export interface ScrapeFollowingResult {
+  success: boolean;
+  following: string[];
+  isPrivate: boolean;
+  source: 'puppeteer' | 'rapidapi' | 'sandbox';
+  error?: string;
+}
+
+export async function scrapeFollowingList(username: string): Promise<ScrapeFollowingResult>
+
+This function should:
+- If process.env.SCRAPER_SANDBOX === 'true': return { success: true, following: [], isPrivate: false, source: 'sandbox' } — sandbox mode always passes
+- Try Puppeteer first: launch browser (reuse the same headless args already in the file), navigate to https://www.instagram.com/{username}/, check if profile is private by looking for "This account is private" text in page content
+- If private: return { success: true, following: [], isPrivate: true, source: 'puppeteer' }
+- To get following list: navigate to https://www.instagram.com/{username}/following/ — scroll and collect all @usernames visible in the modal/list. Return them as lowercase strings without @.
+- Add random delay between 1500-2500ms using: await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000))
+- Puppeteer fails: fall back to RapidAPI — use the existing scrapeWithRapidApi pattern but call the /v1/following endpoint instead
+- Wrap everything in try/catch
+
+2. In server.ts, replace the entire auditWinnerFollows() function body with:
+
+import { scrapeFollowingList } from './server/scraper/instagramBio.js';
+
+async function auditWinnerFollows(username: string, requiredProfiles: string[]): Promise<{ passed: boolean; missingProfiles: string[] }> {
+  if (requiredProfiles.length === 0) return { passed: true, missingProfiles: [] };
+  if (process.env.SCRAPER_SANDBOX === 'true') return { passed: true, missingProfiles: [] };
+  
+  const result = await scrapeFollowingList(username);
+  
+  if (!result.success) {
+    console.error(`[Draw Audit] Scrape failed for @${username}:`, result.error);
+    return { passed: false, missingProfiles: requiredProfiles };
+  }
+  
+  if (result.isPrivate) {
+    console.warn(`[Draw Audit] @${username} has private profile — cannot verify follows`);
+    return { passed: false, missingProfiles: requiredProfiles };
+  }
+  
+  const followingSet = new Set(result.following.map(u => u.toLowerCase()));
+  const missingProfiles = requiredProfiles.filter(p => !followingSet.has(p.toLowerCase()));
+  
+  return { passed: missingProfiles.length === 0, missingProfiles };
+}
+
+Do NOT change anything else in either file. Do NOT remove the existing scrapeInstagramBioForCode export. The sandbox mode (SCRAPER_SANDBOX=true) must continue to work for local development.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #02 -->
+  <div class="card c" data-p="c" id="t02">
+    <div class="ch" onclick="tog('t02')">
+      <div class="cbox" onclick="tick(event,'t02')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#02</span>
+          <span class="pbadge pc">KRITIČNO</span>
+          <span class="ftag exists">server.ts</span>
+          <span class="ftag">socket.io → dodati</span>
+        </div>
+        <div class="ctitle">Nema Socket.io — live draw gledalaci ne vide ništa u realnom vremenu</div>
+        <div class="cdesc">Draw radi na serveru, vraća JSON response, ali nema broadcast-a. Gledalaci na /giveaway/:slug/draw vide prazan ekran.</div>
+      </div>
+      <div class="ctog" id="tog-t02">▾</div>
+    </div>
+    <div class="cbody" id="b-t02">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ Već postoji:</strong> <code>server.ts</code> — kompletan draw endpoint <code>POST /api/giveaway/draw-start/:id</code> sa svim draw logikom.<br>
+          <strong>✓ Već postoji:</strong> <code>server/crypto/provablyFair.ts</code> — <code>runProvablyFairDraw()</code>, <code>buildTicketPool()</code>, <code>computeDrawHash()</code> sve funkcioniše.<br>
+          <strong>✓ Već postoji:</strong> <code>package.json</code> ima Express i http module.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>npm install socket.io socket.io-client</span></li>
+          <li class="ti"><i class="arr">→</i><span>U server.ts: zameniti <code>app.listen()</code> sa <code>http.createServer(app)</code> + <code>new Server(httpServer)</code></span></li>
+          <li class="ti"><i class="arr">→</i><span>Dodati emit pozive unutar postojećeg draw-start endpoint-a između svake faze draw-a</span></li>
+          <li class="ti"><i class="arr">→</i><span>Frontend: u src/ kreirati DrawPage komponentu koja se konektuje na socket i prikazuje animaciju</span></li>
+        </ul>
+        <div class="csnip"><span class="c">// server.ts — na kraju startServer() funkcije, UMESTO app.listen:</span>
+<span class="k">import</span> { createServer } <span class="k">from</span> <span class="s">'http'</span>;
+<span class="k">import</span> { Server } <span class="k">from</span> <span class="s">'socket.io'</span>;
+<span class="k">const</span> httpServer = <span class="fn">createServer</span>(app);
+<span class="k">const</span> io = <span class="k">new</span> <span class="fn">Server</span>(httpServer, { cors: { origin: <span class="s">'*'</span> } });
+<span class="c">// Zatim unutar draw-start endpointa, emituj:</span>
+io.to(id).<span class="fn">emit</span>(<span class="s">'draw:seed_revealed'</span>, { seed, seedHash });
+io.to(id).<span class="fn">emit</span>(<span class="s">'draw:winner_drawn'</span>, { username, drawHash, winnerIndex });</div>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p02')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p02">Add Socket.io real-time broadcasting to the existing Lootly draw system. Here is the exact project structure:
+
+EXISTING FILES (modify these, do not recreate):
+- server.ts — main Express server. Has startServer() async function. Currently ends with: const server = app.listen(PORT, '0.0.0.0', () => { ... }). Also has POST /api/giveaway/draw-start/:id endpoint with full draw logic using runProvablyFairDraw() from ./server/crypto/provablyFair.js
+- server/crypto/provablyFair.ts — has runProvablyFairDraw(), buildTicketPool(), computeDrawHash(), pickWinnerIndex() — all working, do not touch
+- package.json — currently has express, bullmq, ioredis, puppeteer, firebase-admin. Need to add socket.io.
+
+WHAT TO DO:
+
+Step 1 — Add socket.io to package.json dependencies:
+"socket.io": "^4.7.5"
+"socket.io-client": "^4.7.5"
+
+Step 2 — In server.ts, at the top of the file add these imports:
+import { createServer } from 'http';
+import { Server as SocketServer } from 'socket.io';
+
+Step 3 — Inside startServer() function, find the line:
+  const server = app.listen(PORT, '0.0.0.0', () => {
+Replace with:
+  const httpServer = createServer(app);
+  const io = new SocketServer(httpServer, {
+    cors: { origin: '*', credentials: true },
+    connectionStateRecovery: { maxDisconnectionDuration: 2 * 60 * 1000 }
+  });
+  
+  io.on('connection', (socket) => {
+    socket.on('join:giveaway', ({ giveawayId }: { giveawayId: string }) => {
+      socket.join(giveawayId);
+    });
+  });
+  
+  const server = httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Lootly Server] Live on http://localhost:${PORT}`);
+  });
+
+Step 4 — In the POST /api/giveaway/draw-start/:id endpoint, ADD these io.emit calls at the right places (do not change existing logic, just add emits):
+
+After giveaway.status = 'drawing' and writeDatabase:
+  io.to(id).emit('draw:started', { totalParticipants: verifiedParticipants.length, giveawayTitle: giveaway.title });
+
+After resolveCampaignSeed succeeds:
+  io.to(id).emit('draw:seed_revealed', { seed: secretCampaignSeed, seedHash: giveaway.seedHash, sortedPool: buildTicketPool(verifiedParticipants) });
+
+Inside the while loop, after pickWinnerIndex:
+  io.to(id).emit('draw:winner_drawn', { username: targetCandidateUsername, drawHash, winnerIndex, roundNumber: winnersChosen.length + disqualifiedCandidates.length + 1 });
+  io.to(id).emit('draw:verifying', { username: targetCandidateUsername });
+
+After audit.passed === true:
+  io.to(id).emit('draw:winner_verified', { username: targetCandidateUsername, passed: true, missingProfiles: [] });
+
+After disqualified:
+  io.to(id).emit('draw:winner_verified', { username: targetCandidateUsername, passed: false, missingProfiles: audit.missingProfiles });
+
+After giveaway.status = 'completed' and writeDatabase:
+  io.to(id).emit('draw:completed', { winners: winnersChosen, disqualifiedList: disqualifiedCandidates, revealedSeed: secretCampaignSeed });
+
+Step 5 — Create src/pages/DrawPage.tsx:
+- Full screen dark page, route: /giveaway/:slug/draw
+- On mount: fetch giveaway data from GET /api/giveaway/by-slug/:slug
+- Connect to socket: import { io } from 'socket.io-client'; const socket = io();
+- Emit: socket.emit('join:giveaway', { giveawayId: giveaway.id })
+- If user is host (check localStorage for hostId matching giveaway.hostId): show "Start Draw" button that calls POST /api/giveaway/draw-start/:id
+- Listen to all draw:* events and show each stage with simple animated text (no need for complex animation — just clear status messages that update)
+- Use canvas-confetti (already in package.json) on draw:winner_verified when passed === true
+- Add route in src/App.tsx or wherever routes are defined
+
+Do NOT break the existing draw logic. The draw must still work even if no socket clients are connected (io.to().emit() is fire-and-forget, it won't throw if room is empty).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #03 -->
+  <div class="card c" data-p="c" id="t03">
+    <div class="ch" onclick="tog('t03')">
+      <div class="cbox" onclick="tick(event,'t03')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#03</span>
+          <span class="pbadge pc">KRITIČNO</span>
+          <span class="ftag exists">server.ts</span>
+          <span class="ftag exists">server/auth/password.ts ✓</span>
+        </div>
+        <div class="ctitle">Nema auth middleware — zaštićene rute su otvorene svima</div>
+        <div class="cdesc">Ko zna hostId može da pokrene draw, briše kampanju, edituje giveaway. password.ts postoji ali nema JWT tokena ni session provere na rutama.</div>
+      </div>
+      <div class="ctog" id="tog-t03">▾</div>
+    </div>
+    <div class="cbody" id="b-t03">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ Već postoji:</strong> <code>server/auth/password.ts</code> — <code>hashPassword()</code> i <code>verifyPassword()</code> su implementirani.<br>
+          <strong>✓ Već postoji:</strong> Login endpoint <code>POST /api/hosts/login</code> u server.ts verifikuje password i vraća host objekat.<br>
+          <strong>Nedostaje:</strong> Login ne vraća token. Rute za draw/edit/delete ne proveravaju ko poziva.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>npm install jsonwebtoken @types/jsonwebtoken</span></li>
+          <li class="ti"><i class="arr">→</i><span>Login endpoint da vrati JWT token pored host objekta</span></li>
+          <li class="ti"><i class="arr">→</i><span>Kreirati <code>requireAuth</code> middleware u novom fajlu <code>server/auth/middleware.ts</code></span></li>
+          <li class="ti"><i class="arr">→</i><span>Dodati middleware na: draw-start, edit, delete, upgrade rute</span></li>
+          <li class="ti"><i class="arr">→</i><span>Dodati JWT_SECRET u .env.example</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p03')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p03">Add JWT authentication to protect sensitive routes. Here is the exact project structure:
+
+EXISTING FILES:
+- server/auth/password.ts — has hashPassword(password: string): string and verifyPassword(password: string, hash: string): boolean — DO NOT TOUCH
+- server.ts — has POST /api/hosts/login endpoint that calls verifyPassword() and returns sanitizeHost(host). Also has POST /api/giveaway/draw-start/:id, POST /api/giveaway/edit/:id, DELETE /api/giveaway/:id, POST /api/hosts/upgrade endpoints that are currently unprotected.
+
+WHAT TO DO:
+
+Step 1 — Add to package.json dependencies:
+"jsonwebtoken": "^9.0.2"
+And devDependencies: "@types/jsonwebtoken": "^9.0.6"
+
+Step 2 — Create NEW file server/auth/middleware.ts:
+
+import jwt from 'jsonwebtoken';
+import type { Request, Response, NextFunction } from 'express';
+
+export interface AuthRequest extends Request {
+  hostId?: string;
+  hostEmail?: string;
+}
+
+export function requireAuth(req: AuthRequest, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Authentication required. Please log in.' });
+    return;
+  }
+  const token = authHeader.slice(7);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-change-in-prod') as { hostId: string; email: string };
+    req.hostId = decoded.hostId;
+    req.hostEmail = decoded.email;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
+  }
+}
+
+Step 3 — In server.ts, modify POST /api/hosts/login:
+After verifyPassword succeeds, before res.json(), add:
+  const token = jwt.sign(
+    { hostId: host.id, email: host.email },
+    process.env.JWT_SECRET || 'dev-secret-change-in-prod',
+    { expiresIn: '7d' }
+  );
+  return res.json({ host: sanitizeHost(host), token });
+
+Same for POST /api/hosts/register — return token after creating host.
+
+Step 4 — Import and apply requireAuth middleware to these routes in server.ts:
+  import { requireAuth, type AuthRequest } from './server/auth/middleware.js';
+
+Apply to:
+- POST /api/giveaway/create — add requireAuth, then inside verify req.hostId === req.body.hostId
+- POST /api/giveaway/edit/:id — add requireAuth, verify the giveaway belongs to req.hostId
+- DELETE /api/giveaway/:id — add requireAuth, verify ownership
+- POST /api/giveaway/draw-start/:id — add requireAuth, verify ownership
+- POST /api/hosts/upgrade — add requireAuth, only allow upgrading own account
+
+Step 5 — Add to .env.example:
+JWT_SECRET=replace_with_random_string_minimum_32_characters
+
+Important: For local dev without the env var, fall back to 'dev-secret-change-in-prod' so the server still runs. Never crash if JWT_SECRET is missing in development.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ HIGH ══════════════ -->
+<div class="sec">
+  <div class="sectitle">
+    <span style="color:var(--orange);font-size:15px">●</span>
+    <span class="sectxt">Visoko — Treba što pre</span>
+    <span class="seccnt" id="sc-h">3 taskova</span>
+  </div>
+
+  <!-- #04 -->
+  <div class="card h" data-p="h" id="t04">
+    <div class="ch" onclick="tog('t04')">
+      <div class="cbox" onclick="tick(event,'t04')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#04</span>
+          <span class="pbadge ph">VISOKO</span>
+          <span class="ftag exists">server.ts</span>
+          <span class="ftag">helmet · rate-limit → dodati</span>
+        </div>
+        <div class="ctitle">Nema helmet ni globalnog rate limiter-a</div>
+        <div class="cdesc">Nema security headersa. Jedini rate limit je lokalni IP check na join endpoint-u. API je potpuno otvoren za abuse.</div>
+      </div>
+      <div class="ctog" id="tog-t04">▾</div>
+    </div>
+    <div class="cbody" id="b-t04">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ Već postoji:</strong> IP rate limit logika u <code>POST /api/participants/join-request</code> (DISABLE_IP_RATE_LIMIT env var check).<br>
+          <strong>✓ Već postoji:</strong> <code>app.set('trust proxy', 1)</code> je već u server.ts.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>npm install helmet express-rate-limit</span></li>
+          <li class="ti"><i class="arr">→</i><span>app.use(helmet()) odmah posle <code>const app = express()</code></span></li>
+          <li class="ti"><i class="arr">→</i><span>Globalni limiter: 100 req/15min na sve /api/* rute</span></li>
+          <li class="ti"><i class="arr">→</i><span>Auth limiter: 10 req/10min na /api/hosts/login i /api/hosts/register</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p04')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p04">Add security headers and rate limiting to server.ts. This is a targeted change — do not touch anything else.
+
+EXISTING FILE: server.ts
+- Already has: app.set('trust proxy', 1) near the top of startServer()
+- Already has: express.json() middleware
+- Does NOT have: helmet or express-rate-limit
+
+WHAT TO DO:
+
+Step 1 — Add to package.json dependencies:
+"helmet": "^7.1.0"
+"express-rate-limit": "^7.4.0"
+
+Step 2 — In server.ts, add imports at the top of the file:
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+
+Step 3 — Inside startServer(), right after const app = express() and before any other app.use() calls, add:
+
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+}));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
+  message: { error: 'Too many requests — slow down.' },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many auth attempts. Try again in 10 minutes.' },
+});
+
+app.use('/api', apiLimiter);
+
+Step 4 — Find the routes for POST /api/hosts/login and POST /api/hosts/register and add authLimiter as first middleware:
+app.post('/api/hosts/login', authLimiter, async (req, res) => { ... })
+app.post('/api/hosts/register', authLimiter, async (req, res) => { ... })
+
+That is all. Do not change any existing route logic, just add the middleware.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #05 -->
+  <div class="card h" data-p="h" id="t05">
+    <div class="ch" onclick="tog('t05')">
+      <div class="cbox" onclick="tick(event,'t05')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#05</span>
+          <span class="pbadge ph">VISOKO</span>
+          <span class="ftag exists">server.ts</span>
+          <span class="ftag">src/pages/ → kreirati</span>
+        </div>
+        <div class="ctitle">Archive stranica ne postoji — nema javnog dokaza draw-a</div>
+        <div class="cdesc">Posle draw-a nema permanentne stranice sa seed-om, hashom i listom učesnika. Ovo je ključno za poverenje publike u "provably fair" sistem.</div>
+      </div>
+      <div class="ctog" id="tog-t05">▾</div>
+    </div>
+    <div class="cbody" id="b-t05">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ Već postoji:</strong> <code>server.ts</code> — draw-start endpoint već čuva <code>giveaway.seed</code>, <code>winners[]</code>, <code>disqualifiedList[]</code>, <code>rounds[]</code> u bazu posle draw-a.<br>
+          <strong>✓ Već postoji:</strong> <code>GET /api/verification/logs</code> endpoint vraća sve logove po giveawayId.<br>
+          <strong>✓ Već postoji:</strong> <code>GET /api/giveaway/by-slug/:slug</code> vraća kompletan giveaway objekat.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>Dodati novi endpoint <code>GET /api/giveaway/:slug/archive</code> u server.ts — vraća podatke samo za completed giveaway</span></li>
+          <li class="ti"><i class="arr">→</i><span>Kreirati <code>src/pages/ArchivePage.tsx</code> dostupan na <code>/giveaway/:slug/archive</code></span></li>
+          <li class="ti"><i class="arr">→</i><span>Prikazati: seed, hash, SHA256 verifikaciju, pobednike, disqualified, listu učesnika, log</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p05')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p05">Add a public archive page that shows permanent proof of a completed draw. Here is the exact structure:
+
+EXISTING FILES:
+- server.ts — has GET /api/giveaway/by-slug/:slug and GET /api/verification/logs endpoints. Draw results are stored in giveaway object: giveaway.seed (revealed after draw), giveaway.seedHash, giveaway.winners[], giveaway.disqualifiedList[], giveaway.status ('completed' when done), giveaway.rounds[] (draw round details).
+- server/crypto/provablyFair.ts — has verifySeedAgainstHash(seed, hash): boolean — use this for verification display.
+
+WHAT TO DO:
+
+Step 1 — Add new endpoint to server.ts (add after the existing GET /api/giveaway/by-slug/:slug route):
+
+app.get('/api/giveaway/:slug/archive', async (req, res) => {
+  const dbData = await readDatabase();
+  const giveaway = dbData.giveaways.find(g => g.slug === req.params.slug);
+  if (!giveaway) return res.status(404).json({ error: 'Giveaway not found' });
+  if (giveaway.status !== 'completed') return res.status(404).json({ error: 'Draw has not taken place yet.' });
+  
+  const participants = dbData.participants.filter(p => p.giveawayId === giveaway.id && p.verifiedAt);
+  const logs = dbData.logs.filter(l => l.giveawayId === giveaway.id);
+  
+  const seedVerified = giveaway.seed ? verifySeedAgainstHash(giveaway.seed, giveaway.seedHash) : false;
+  
+  res.json({
+    title: giveaway.title,
+    prize: giveaway.prize,
+    slug: giveaway.slug,
+    drawDate: giveaway.drawDate,
+    seedHash: giveaway.seedHash,
+    revealedSeed: giveaway.seed,
+    seedVerified,
+    winners: giveaway.winners || [],
+    disqualifiedList: giveaway.disqualifiedList || [],
+    rounds: giveaway.rounds || [],
+    sortedParticipants: participants.map(p => ({ username: p.instagramUsername, ticketNumber: p.ticketCount, verifiedAt: p.verifiedAt })).sort((a, b) => a.username.localeCompare(b.username)),
+    verificationLog: logs,
+    totalParticipants: participants.length,
+  });
+});
+
+Step 2 — Create src/pages/ArchivePage.tsx:
+- Route: /giveaway/:slug/archive
+- On mount fetch: GET /api/giveaway/:slug/archive
+- If 404 (not completed yet): show "Draw has not taken place yet" message
+- Display these sections in order:
+  1. Header: giveaway title, prize, draw date
+  2. "Provably Fair Proof" section: show seedHash (was public before draw), revealedSeed (shown at draw day), SHA256(revealedSeed) === seedHash check with green ✅ or red ❌
+  3. "Winners" section: list with green trophy icon
+  4. "Disqualified" section (if any): list with reason
+  5. "All Participants" section: sorted alphabetically, numbered list
+  6. "Verification Log" section: timestamped table
+- Add "Copy Archive Link" button at top right
+- Style it like an official document/certificate (dark theme matching the rest of the app)
+
+Step 3 — Add route to the React Router config (check src/App.tsx or wherever routes are defined and add the new route).
+
+Import verifySeedAgainstHash at top of server.ts from './server/crypto/provablyFair.js'</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #06 -->
+  <div class="card h" data-p="h" id="t06">
+    <div class="ch" onclick="tog('t06')">
+      <div class="cbox" onclick="tick(event,'t06')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#06</span>
+          <span class="pbadge ph">VISOKO</span>
+          <span class="ftag exists">server/db/repository.ts</span>
+          <span class="ftag exists">server/db/firestoreStore.ts ✓</span>
+        </div>
+        <div class="ctitle">JSON fajl kao baza — race condition pod concurrent loadom</div>
+        <div class="cdesc">readDatabase()/writeDatabase() čita i piše JSON na disk. Dva simultana requesta mogu da korumpiraju podatke. Firestore postoji ali je samo mirror.</div>
+      </div>
+      <div class="ctog" id="tog-t06">▾</div>
+    </div>
+    <div class="cbody" id="b-t06">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ Već postoji:</strong> <code>server/db/firestoreStore.ts</code> — Firestore SDK je inicijalizovan.<br>
+          <strong>✓ Već postoji:</strong> <code>server/db/localStore.ts</code> — JSON fajl implementacija.<br>
+          <strong>✓ Već postoji:</strong> <code>server/db/repository.ts</code> — <code>readDatabase()</code>/<code>writeDatabase()</code> apstrakcija.<br>
+          <strong>Lokalno:</strong> JSON baza je OK za development — Firestore treba za produkciju.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr w">→</i><span>Uradi ovo POSLE #01, #02, #03 — nije blocker za lokalni dev</span></li>
+          <li class="ti"><i class="arr">→</i><span>U repository.ts: ako FIREBASE_PROJECT_ID postoji → koristi Firestore, inače → JSON fajl</span></li>
+          <li class="ti"><i class="arr">→</i><span>Koristiti Firestore transactions za participant join (username lock) i draw-start</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p06')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p06">Make Firestore the primary database when configured, with JSON file as local dev fallback. Here is the exact structure:
+
+EXISTING FILES:
+- server/db/repository.ts — exports readDatabase() and writeDatabase(). Currently always uses JSON file (localStore).
+- server/db/firestoreStore.ts — has initFirestore() and isFirestoreActive() exports. Has Firestore initialized when FIREBASE_PROJECT_ID env var is set.
+- server/db/localStore.ts — JSON file implementation, keep this working.
+- server/db/types.ts — has all TypeScript types (Participant, Giveaway, HostUser, etc.)
+
+WHAT TO DO:
+
+In server/db/repository.ts, modify readDatabase() and writeDatabase() to route to Firestore when active:
+
+1. Check isFirestoreActive() at the start of each function
+2. If Firestore is active: use Firestore collections instead of JSON file
+   - readDatabase() should fetch from Firestore collections: users, giveaways, participants, logs
+   - writeDatabase() should batch-write changes to Firestore
+3. If Firestore is NOT active (local dev without Firebase credentials): use existing JSON file logic unchanged
+
+For the participant join race condition specifically, add a new exported function to repository.ts:
+export async function atomicParticipantLock(giveawayId: string, instagramUsername: string, newParticipant: Participant): Promise<{ success: boolean; error?: string }>
+
+This function should:
+- If Firestore active: use db.runTransaction() to check if username already verified in this giveaway, and if not, write the new participant atomically
+- If JSON: use the existing readDatabase/writeDatabase but wrapped in a simple in-memory lock (use a Map<string, boolean> as a mutex keyed by giveawayId+username)
+
+Important: Do NOT break local dev. If FIREBASE_PROJECT_ID is not in .env, everything must still work with the JSON file exactly as before.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MEDIUM ══════════════ -->
+<div class="sec">
+  <div class="sectitle">
+    <span style="color:var(--yellow);font-size:15px">●</span>
+    <span class="sectxt">Srednje — Za čišći kod i produkciju</span>
+    <span class="seccnt" id="sc-m">3 taskova</span>
+  </div>
+
+  <!-- #07 -->
+  <div class="card m" data-p="m" id="t07">
+    <div class="ch" onclick="tog('t07')">
+      <div class="cbox" onclick="tick(event,'t07')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#07</span>
+          <span class="pbadge pm">SREDNJE</span>
+          <span class="ftag exists">package.json</span>
+          <span class="ftag exists">.env.example ✓</span>
+        </div>
+        <div class="ctitle">package.json cleanup — @google/genai, pogrešno ime, nedostaje JWT_SECRET</div>
+        <div class="cdesc">"name": "react-example" ostalo od AI generisanja. @google/genai nije korišćen. JWT_SECRET nedostaje iz .env.example.</div>
+      </div>
+      <div class="ctog" id="tog-t07">▾</div>
+    </div>
+    <div class="cbody" id="b-t07">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ .env.example</strong> već ima: REDIS_URL, SCRAPER_SANDBOX, RAPIDAPI_KEY, Firebase vars, PORT.<br>
+          <strong>Nedostaje:</strong> JWT_SECRET u .env.example.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>Promeniti "name": "react-example" → "name": "lootly"</span></li>
+          <li class="ti"><i class="arr">→</i><span>Proveriti da li se @google/genai koristi negde u kodu — ako ne, ukloniti</span></li>
+          <li class="ti"><i class="arr">→</i><span>Dodati "engines": { "node": ">=22.0.0" }</span></li>
+          <li class="ti"><i class="arr">→</i><span>Dodati JWT_SECRET u .env.example</span></li>
+          <li class="ti"><i class="arr">→</i><span>Ukloniti HMR komentare iz vite.config.ts (ostali od AI Studio)</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p07')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p07">Clean up project metadata and leftover AI Studio artifacts. Small targeted changes only.
+
+WHAT TO DO:
+
+1. In package.json:
+   - Change "name": "react-example" to "name": "lootly"  
+   - Add "description": "Provably Fair Live Giveaway Platform"
+   - Add "engines": { "node": ">=22.0.0" }
+   - Search ALL .ts and .tsx files in the project for any import from '@google/genai'. If found nowhere, remove "@google/genai" from dependencies. If found somewhere, tell me which file before removing.
+
+2. In .env.example, add this line in the Server section at the bottom:
+   # JWT Authentication (min 32 characters random string)
+   JWT_SECRET=replace_with_random_string_minimum_32_characters
+
+3. In vite.config.ts, remove the AI Studio comments (the ones mentioning "AI Studio", "DISABLE_HMR", "agent edits") but keep the actual logic:
+   hmr: process.env.DISABLE_HMR !== 'true',
+   watch: process.env.DISABLE_HMR === 'true' ? null : {},
+   Just remove the comment lines above these, not the code itself.
+
+4. Run npm install after package.json changes to update package-lock.json.
+
+That is all — do not touch any TypeScript source files.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #08 -->
+  <div class="card m" data-p="m" id="t08">
+    <div class="ch" onclick="tog('t08')">
+      <div class="cbox" onclick="tick(event,'t08')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#08</span>
+          <span class="pbadge pm">SREDNJE</span>
+          <span class="ftag exists">server/crypto/provablyFair.ts ✓</span>
+          <span class="ftag">src/ → draw UI</span>
+        </div>
+        <div class="ctitle">Sandbox verifikator postoji ali nema UI na frontendu</div>
+        <div class="cdesc">sandboxVerifyWinner() u provablyFair.ts i /api/giveaway/cryptography-sandbox endpoint su implementirani ali nema frontend stranice gde korisnici mogu sami da verifikuju rezultat draw-a.</div>
+      </div>
+      <div class="ctog" id="tog-t08">▾</div>
+    </div>
+    <div class="cbody" id="b-t08">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ Već postoji:</strong> <code>POST /api/giveaway/cryptography-sandbox</code> endpoint u server.ts — prima seed + participant listu, vraća kompletnu verifikaciju.<br>
+          <strong>✓ Već postoji:</strong> <code>sandboxVerifyWinner()</code> u provablyFair.ts — vraća: orderedList, formulaInput, sha256Result, decimalBigInt, resolvedIndex, winnerUsername.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>Kreirati <code>src/pages/VerifyPage.tsx</code> — javna stranica gde iko može da proveri draw</span></li>
+          <li class="ti"><i class="arr">→</i><span>Forma: unos seed-a + participant lista (comma separated) → poziv na sandbox endpoint → prikaz rezultata korak po korak</span></li>
+          <li class="ti"><i class="arr ok">✓</i><span>Backend endpoint već postoji — samo treba UI</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p08')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p08">Create a public verification page that lets anyone independently verify a draw result. The backend is already complete — only frontend needed.
+
+EXISTING BACKEND (do not touch):
+- POST /api/giveaway/cryptography-sandbox in server.ts — accepts { seed: string, sortedParticipantCommaList: string }, returns:
+  { orderedList: string[], formulaInput: string, sha256Result: string, decimalBigInt: string, resolvedIndex: number, winnerUsername: string }
+- This endpoint is already live and working.
+
+WHAT TO DO:
+
+Create src/pages/VerifyPage.tsx — a public page at route /verify
+
+The page should have:
+1. A title: "Independent Draw Verification" with explanation: "Paste the seed and participant list from any completed Lootly draw to independently verify the winner."
+
+2. Two inputs:
+   - Seed input (text): "Revealed Seed" — the seed shown at draw time
+   - Participants textarea: "Participant Usernames (comma separated)" — e.g. "alice,bob,charlie"
+
+3. A "Verify" button that:
+   - Calls POST /api/giveaway/cryptography-sandbox with { seed, sortedParticipantCommaList: participantsInput }
+   - Shows loading state while waiting
+
+4. Results display (show after successful call):
+   - Step 1: "Sorted participant list" — show orderedList as numbered list
+   - Step 2: "Formula input" — show formulaInput in a monospace code box
+   - Step 3: "SHA-256 hash" — show sha256Result in a monospace code box  
+   - Step 4: "Winner index" — show resolvedIndex out of orderedList.length
+   - Step 5: "WINNER" — show winnerUsername in large highlighted text with trophy emoji
+
+5. Error handling: show clear error if API returns error
+
+Style should match the dark theme of the rest of the app. Keep it simple and clean.
+
+Add the route /verify to React Router in src/App.tsx (or wherever routes are defined).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #09 -->
+  <div class="card m" data-p="m" id="t09">
+    <div class="ch" onclick="tog('t09')">
+      <div class="cbox" onclick="tick(event,'t09')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#09</span>
+          <span class="pbadge pm">SREDNJE</span>
+          <span class="ftag exists">server.ts</span>
+          <span class="ftag">resend → dodati</span>
+        </div>
+        <div class="ctitle">Email notifikacije nedostaju — participant ima email polje ali se ništa ne šalje</div>
+        <div class="cdesc">Participant model ima email polje, join-request endpoint ga prima i čuva, ali se nikad ništa ne šalje. Nema reminder ni winner email-a.</div>
+      </div>
+      <div class="ctog" id="tog-t09">▾</div>
+    </div>
+    <div class="cbody" id="b-t09">
+      <div class="cbin">
+        <div class="exists-box">
+          <strong>✓ Već postoji:</strong> <code>participant.email</code> polje u <code>server/db/types.ts</code> — prihvata i čuva email pri join-u.<br>
+          <strong>✓ Već postoji:</strong> draw-start endpoint zna ko su winners — može lako poslati email tamo.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>npm install resend</span></li>
+          <li class="ti"><i class="arr">→</i><span>Kreirati <code>server/services/email.ts</code> sa sendDrawReminderEmail() i sendWinnerEmail()</span></li>
+          <li class="ti"><i class="arr">→</i><span>U draw-start endpoint-u: posle winners potvrde, poslati winner email</span></li>
+          <li class="ti"><i class="arr w">→</i><span>Email failure NIKAD ne sme da crasha server — uvek u try/catch</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p09')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p09">Add email notifications using Resend API. Here is the exact structure:
+
+EXISTING FILES:
+- server/db/types.ts — Participant type has email?: string field
+- server.ts — POST /api/giveaway/draw-start/:id endpoint. After the draw completes, giveaway.winners contains array of winner usernames. The verified participants with emails are in dbData.participants filtered by giveawayId and verifiedAt !== null.
+
+WHAT TO DO:
+
+Step 1 — Add to package.json: "resend": "^3.2.0"
+
+Step 2 — Create NEW file server/services/email.ts:
+
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@lootly.gg';
+
+export async function sendWinnerEmail(params: {
+  to: string;
+  winnerUsername: string;
+  giveawayTitle: string;
+  prize: string;
+  archiveUrl: string;
+}): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log('[Email] RESEND_API_KEY not set — skipping winner email to', params.to);
+    return;
+  }
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: params.to,
+      subject: `🏆 You won ${params.giveawayTitle}!`,
+      html: `
+        <div style="font-family:monospace;background:#03050a;color:#e8edf5;padding:32px;border-radius:12px;max-width:500px">
+          <h1 style="color:#00e87a">🏆 Congratulations, @${params.winnerUsername}!</h1>
+          <p>You won: <strong>${params.prize}</strong></p>
+          <p>Giveaway: ${params.giveawayTitle}</p>
+          <a href="${params.archiveUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#00d4ff;color:#000;text-decoration:none;border-radius:6px;font-weight:bold">View Draw Proof</a>
+        </div>
+      `,
+    });
+    console.log('[Email] Winner email sent to', params.to);
+  } catch (err) {
+    console.warn('[Email] Failed to send winner email:', err instanceof Error ? err.message : err);
+  }
+}
+
+export async function sendDrawReminderEmail(params: {
+  to: string;
+  giveawayTitle: string;
+  drawUrl: string;
+  minutesUntilDraw: number;
+}): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: params.to,
+      subject: `⏰ Draw in ${params.minutesUntilDraw} minutes — ${params.giveawayTitle}`,
+      html: `
+        <div style="font-family:monospace;background:#03050a;color:#e8edf5;padding:32px;border-radius:12px;max-width:500px">
+          <h2 style="color:#00d4ff">⏰ Draw starting soon!</h2>
+          <p>${params.giveawayTitle} draw is in ${params.minutesUntilDraw} minutes.</p>
+          <a href="${params.drawUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#ff3b3b;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold">Watch Live Draw</a>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.warn('[Email] Failed to send reminder:', err instanceof Error ? err.message : err);
+  }
+}
+
+Step 3 — In server.ts, import sendWinnerEmail:
+import { sendWinnerEmail } from './server/services/email.js';
+
+In the draw-start endpoint, after giveaway.status = 'completed' and writeDatabase, add:
+for (const winnerUsername of winnersChosen) {
+  const winnerParticipant = dbData.participants.find(p => p.giveawayId === id && p.instagramUsername === winnerUsername && p.email);
+  if (winnerParticipant?.email) {
+    const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+    await sendWinnerEmail({
+      to: winnerParticipant.email,
+      winnerUsername,
+      giveawayTitle: giveaway.title,
+      prize: giveaway.prize,
+      archiveUrl: `${baseUrl}/giveaway/${giveaway.slug}/archive`,
+    });
+  }
+}
+
+Step 4 — Add to .env.example:
+RESEND_API_KEY=
+FROM_EMAIL=noreply@yourdomain.com
+BASE_URL=http://localhost:3000
+
+Critical: email sending must NEVER throw or crash the server. All email functions already have try/catch — make sure nothing propagates up.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<!-- PROGRESS FOOTER -->
+<div class="pbar-wrap">
+  <span class="pbl">Napredak</span>
+  <div class="pbbar"><div class="pbfill" id="pbf"></div></div>
+  <span class="pbpct" id="pbp">0%</span>
+  <span class="pbcnt" id="pbc">0 / 9 završeno</span>
+</div>
+
+<script>
+const TOTAL = 9;
+
+function tog(id) {
+  const b = document.getElementById('b-' + id);
+  const t = document.getElementById('tog-' + id);
+  if (!b) return;
+  b.classList.toggle('open');
+  t.classList.toggle('open');
+}
+
+function tick(e, id) {
+  e.stopPropagation();
+  const card = document.getElementById(id);
+  const box = card.querySelector('.cbox');
+  const on = box.classList.toggle('ticked');
+  box.textContent = on ? '✓' : '';
+  card.classList.toggle('done-card', on);
+  save(); updateBar(); updateCounts();
+}
+
+function cp(pid) {
+  const el = document.getElementById(pid);
+  if (!el) return;
+  const text = el.textContent.trim();
+  const btns = document.querySelectorAll(`[onclick="cp('${pid}')"]`);
+  navigator.clipboard.writeText(text).then(() => {
+    btns.forEach(b => { b.textContent = '✓ COPIED!'; b.classList.add('ok'); });
+    setTimeout(() => btns.forEach(b => { b.textContent = '⎘ COPY'; b.classList.remove('ok'); }), 2200);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+
+function doFilter(type, btn) {
+  document.querySelectorAll('.fbtn').forEach(b => {
+    b.classList.remove('on','oo','oy','og','oc');
+  });
+  btn.classList.add('on');
+  if (type === 'all') btn.classList.add('oc');
+  if (type === 'h') btn.classList.add('oo');
+  if (type === 'm') btn.classList.add('oy');
+  if (type === 'done') btn.classList.add('og');
+
+  document.querySelectorAll('.card').forEach(card => {
+    const p = card.dataset.p;
+    const done = card.classList.contains('done-card');
+    if (type === 'all') { card.classList.remove('hidden'); return; }
+    if (type === 'done') { card.classList.toggle('hidden', !done); return; }
+    card.classList.toggle('hidden', p !== type);
+  });
+}
+
+function updateBar() {
+  const done = document.querySelectorAll('.cbox.ticked').length;
+  const pct = Math.round((done / TOTAL) * 100);
+  document.getElementById('pbf').style.width = pct + '%';
+  document.getElementById('pbp').textContent = pct + '%';
+  document.getElementById('pbc').textContent = done + ' / ' + TOTAL + ' završeno';
+}
+
+function updateCounts() {
+  ['c','h','m'].forEach(p => {
+    const cards = document.querySelectorAll(`.card[data-p="${p}"]`);
+    const done = [...cards].filter(c => c.classList.contains('done-card')).length;
+    const el = document.getElementById('cnt-' + p);
+    if (el) el.textContent = cards.length - done;
+  });
+  document.getElementById('cnt-d').textContent = document.querySelectorAll('.cbox.ticked').length;
+}
+
+function save() {
+  const s = {};
+  document.querySelectorAll('.card').forEach(c => { s[c.id] = c.classList.contains('done-card'); });
+  try { localStorage.setItem('lootly_v2', JSON.stringify(s)); } catch(e) {}
+}
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('lootly_v2') || '{}');
+    Object.entries(s).forEach(([id, done]) => {
+      if (!done) return;
+      const card = document.getElementById(id); if (!card) return;
+      const box = card.querySelector('.cbox');
+      box.classList.add('ticked'); box.textContent = '✓';
+      card.classList.add('done-card');
+    });
+  } catch(e) {}
+  updateBar(); updateCounts();
+}
+
+window.addEventListener('load', () => {
+  load();
+  setTimeout(() => { document.getElementById('pbf').style.transition = 'width .8s ease'; }, 200);
+});
+</script>
+</body>
+</html>
