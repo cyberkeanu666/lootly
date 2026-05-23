@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lootly — Cursor Task Board v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Unbounded:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#03050a; --bg2:#080d18; --bg3:#0d1525; --bg4:#121e35;
+    --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.13);
+    --red:#ff3b3b; --orange:#ff8c00; --yellow:#f5c842;
+    --green:#00e87a; --blue:#3b9eff; --cyan:#00d4ff;
+    --text:#e8edf5; --muted:#4a5568; --muted2:#8899aa;
+    --mono:'JetBrains Mono',monospace; --head:'Unbounded',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.012) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+  body::after{content:'';position:fixed;top:-250px;left:50%;transform:translateX(-50%);width:1000px;height:600px;background:radial-gradient(ellipse,rgba(0,232,122,0.04) 0%,transparent 65%);pointer-events:none;z-index:0;}
+
+  .wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 24px 100px;}
+
+  /* HEADER */
+  header{padding:52px 0 44px;border-bottom:1px solid var(--border2);margin-bottom:44px;}
+  .hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+  .logo{font-family:var(--head);font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
+  .logo span{color:var(--green);}
+  h1{font-family:var(--head);font-size:clamp(26px,4.5vw,44px);font-weight:900;line-height:1.05;letter-spacing:-1px;}
+  h1 em{font-style:normal;color:var(--green);}
+  .hsub{margin-top:10px;color:var(--muted2);font-size:12px;max-width:460px;line-height:1.9;}
+  .hsub strong{color:var(--cyan);}
+  .hbadge{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:4px 12px;background:rgba(0,232,122,0.07);border:1px solid rgba(0,232,122,0.2);border-radius:6px;font-size:10px;color:var(--green);letter-spacing:1px;}
+
+  .stats{display:flex;gap:1px;background:var(--border);border:1px solid var(--border2);border-radius:10px;overflow:hidden;flex-shrink:0;align-self:flex-end;}
+  .sbox{padding:14px 22px;background:var(--bg2);text-align:center;min-width:84px;}
+  .sn{font-family:var(--head);font-size:20px;font-weight:700;display:block;}
+  .sn.r{color:var(--red);} .sn.o{color:var(--orange);} .sn.y{color:var(--yellow);} .sn.g{color:var(--green);}
+  .sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;display:block;}
+
+  /* STATUS LEGEND */
+  .legend{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:32px;padding:14px 18px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;align-items:center;}
+  .leg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted2);}
+  .leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .lg{background:var(--green);} .lr{background:var(--red);} .lo{background:var(--orange);} .ly{background:var(--yellow);}
+  .legend-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-right:8px;}
+
+  /* PHASE STATUS */
+  .phase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:44px;}
+  .ph-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .ph-card.done{border-color:rgba(0,232,122,0.25);background:rgba(0,232,122,0.04);}
+  .ph-card.partial{border-color:rgba(255,140,0,0.25);background:rgba(255,140,0,0.04);}
+  .ph-card.todo{border-color:rgba(255,59,59,0.2);}
+  .ph-num{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+  .ph-title{font-size:12px;font-family:var(--head);font-weight:700;line-height:1.4;}
+  .ph-badge{margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;}
+  .ph-done{background:rgba(0,232,122,0.12);color:var(--green);border:1px solid rgba(0,232,122,0.22);}
+  .ph-partial{background:rgba(255,140,0,0.12);color:var(--orange);border:1px solid rgba(255,140,0,0.22);}
+  .ph-todo{background:rgba(255,59,59,0.1);color:var(--red);border:1px solid rgba(255,59,59,0.2);}
+
+  /* FILTER */
+  .fbar{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;align-items:center;}
+  .flabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-right:4px;}
+  .fbtn{padding:5px 13px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;}
+  .fbtn:hover{color:var(--text);background:var(--bg3);}
+  .fbtn.on{background:var(--red);border-color:var(--red);color:#fff;}
+  .fbtn.on.oo{background:var(--orange);border-color:var(--orange);}
+  .fbtn.on.oy{background:var(--yellow);border-color:var(--yellow);color:#000;}
+  .fbtn.on.og{background:var(--green);border-color:var(--green);color:#000;}
+  .fbtn.on.oc{background:var(--cyan);border-color:var(--cyan);color:#000;}
+
+  /* SECTION */
+  .sec{margin-bottom:44px;}
+  .sectitle{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .sectxt{font-family:var(--head);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted2);}
+  .seccnt{font-size:10px;padding:2px 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);}
+
+  /* TASK CARD */
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,transform .2s;position:relative;}
+  .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px;}
+  .card.c::before{background:var(--red);}
+  .card.h::before{background:var(--orange);}
+  .card.m::before{background:var(--yellow);}
+  .card:hover{border-color:var(--border2);transform:translateX(2px);}
+  .card.done-card{opacity:.4;}
+  .card.done-card .ctitle{text-decoration:line-through;color:var(--muted);}
+  .hidden{display:none!important;}
+
+  /* CARD HEADER */
+  .ch{padding:16px 18px 14px 22px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;user-select:none;}
+  .cbox{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);flex-shrink:0;margin-top:2px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--bg3);font-weight:700;}
+  .cbox:hover{border-color:var(--green);}
+  .cbox.ticked{background:var(--green);border-color:var(--green);color:#000;}
+  .cmeta{flex:1;}
+  .ctop{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+  .cid{font-size:10px;color:var(--muted);letter-spacing:1px;}
+  .pbadge{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;padding:2px 7px;border-radius:4px;font-weight:700;}
+  .pc{background:rgba(255,59,59,.14);color:var(--red);border:1px solid rgba(255,59,59,.28);}
+  .ph{background:rgba(255,140,0,.14);color:var(--orange);border:1px solid rgba(255,140,0,.28);}
+  .pm{background:rgba(245,200,66,.1);color:var(--yellow);border:1px solid rgba(245,200,66,.22);}
+  .ftag{font-size:10px;color:var(--cyan);background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.16);padding:2px 7px;border-radius:4px;}
+  .ftag.done-tag{color:var(--green);background:rgba(0,232,122,.07);border-color:rgba(0,232,122,.2);}
+  .ftag.exists{color:#a8c4e0;background:rgba(168,196,224,.06);border-color:rgba(168,196,224,.14);}
+  .ctitle{font-family:var(--head);font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4;}
+  .cdesc{font-size:12px;color:var(--muted2);line-height:1.6;}
+  .ctog{color:var(--muted);font-size:15px;flex-shrink:0;transition:transform .3s;margin-top:3px;}
+  .ctog.open{transform:rotate(180deg);}
+
+  /* CARD BODY */
+  .cbody{display:none;border-top:1px solid var(--border);background:var(--bg3);}
+  .cbody.open{display:block;}
+  .cbin{padding:18px 22px;}
+
+  /* STATUS BOX */
+  .done-box{background:rgba(0,232,122,.04);border:1px solid rgba(0,232,122,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#6ee7b7;line-height:1.8;}
+  .done-box strong{color:var(--green);}
+  .warn-box{background:rgba(255,140,0,.04);border:1px solid rgba(255,140,0,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffcc80;line-height:1.8;}
+  .warn-box strong{color:var(--orange);}
+
+  /* TODO LIST */
+  .todos{list-style:none;margin-bottom:18px;}
+  .ti{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted2);align-items:flex-start;}
+  .ti:last-child{border-bottom:none;}
+  .arr{color:var(--red);flex-shrink:0;margin-top:1px;font-style:normal;}
+  .arr.ok{color:var(--green);}
+  .arr.w{color:var(--orange);}
+
+  /* CODE */
+  .csnip{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:13px 16px;font-size:11.5px;color:#a8c4e0;overflow-x:auto;margin:10px 0;line-height:1.9;}
+  .csnip .k{color:#79b8ff;} .csnip .s{color:#9ecbff;} .csnip .c{color:#3d4f5e;font-style:italic;}
+  .csnip .fn{color:#b392f0;} .csnip .v{color:#ffab70;}
+  .csnip .bad{color:var(--red);} .csnip .good{color:var(--green);}
+
+  /* PROMPT */
+  .psec{margin-top:18px;border:1px solid rgba(0,212,255,.18);border-radius:10px;overflow:hidden;}
+  .phead{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,212,255,.05);border-bottom:1px solid rgba(0,212,255,.13);}
+  .plabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);font-weight:700;display:flex;align-items:center;gap:6px;}
+  .plabel::before{content:'⌘';}
+  .copybtn{display:flex;align-items:center;gap:5px;padding:5px 14px;background:var(--cyan);color:#000;border:none;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+  .copybtn:hover{background:#fff;transform:scale(1.03);}
+  .copybtn.ok{background:var(--green);}
+  .ptext{padding:14px 16px;font-size:11.5px;color:#a8c4e0;line-height:1.95;white-space:pre-wrap;word-break:break-word;background:var(--bg);max-height:380px;overflow-y:auto;}
+  .ptext::-webkit-scrollbar{width:3px;}
+  .ptext::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+  /* FOOTER BAR */
+  .pbar-wrap{position:fixed;bottom:0;left:0;right:0;background:rgba(3,5,10,.96);border-top:1px solid var(--border2);backdrop-filter:blur(20px);padding:11px 24px;display:flex;align-items:center;gap:18px;z-index:100;}
+  .pbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);white-space:nowrap;}
+  .pbbar{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+  .pbfill{height:100%;background:linear-gradient(90deg,var(--red),var(--orange),var(--green));border-radius:2px;width:0%;transition:width .7s ease;}
+  .pbpct{font-family:var(--head);font-size:12px;color:var(--text);white-space:nowrap;min-width:48px;}
+  .pbcnt{font-size:10px;color:var(--muted2);white-space:nowrap;}
+
+  ::-webkit-scrollbar{width:5px;height:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+
+  @media(max-width:640px){h1{font-size:24px;}.stats{width:100%;}.sbox{flex:1;}.phase-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:420px){.phase-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<header>
+  <div class="hrow">
+    <div>
+      <div class="logo">Loot<span>ly</span> — Cursor Task Board <span>v3</span></div>
+      <h1>Šta je gotovo,<br><em>šta još treba</em></h1>
+      <p class="hsub">Kompletna analiza tvog <strong>aktuelnog koda</strong>. Svaki prompt referencira tačne fajlove i linije.</p>
+      <div class="hbadge">✓ Analizirano na osnovu stvarnog koda iz repo-a</div>
+    </div>
+    <div class="stats">
+      <div class="sbox"><span class="sn g" id="cnt-done">7</span><span class="sl">Završeno</span></div>
+      <div class="sbox"><span class="sn r" id="cnt-c">2</span><span class="sl">Kritično</span></div>
+      <div class="sbox"><span class="sn o" id="cnt-h">3</span><span class="sl">Visoko</span></div>
+      <div class="sbox"><span class="sn y" id="cnt-m">2</span><span class="sl">Srednje</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- PHASE STATUS OVERVIEW -->
+<div style="margin-bottom:20px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);">Pregled faza iz lootly-docs.html</div>
+<div class="phase-grid">
+  <div class="ph-card done">
+    <div class="ph-num">Faza 1</div>
+    <div class="ph-title">Core scaffold — server, env, auth</div>
+    <div class="ph-badge ph-done">✓ Kompletno</div>
+  </div>
+  <div class="ph-card done">
+    <div class="ph-num">Faza 2</div>
+    <div class="ph-title">Campaign CRUD — kreiranje i upravljanje</div>
+    <div class="ph-badge ph-done">✓ Kompletno</div>
+  </div>
+  <div class="ph-card done">
+    <div class="ph-num">Faza 3</div>
+    <div class="ph-title">Participant flow — bio kod verifikacija</div>
+    <div class="ph-badge ph-done">✓ Kompletno</div>
+  </div>
+  <div class="ph-card done">
+    <div class="ph-num">Faza 4</div>
+    <div class="ph-title">Provably Fair draw engine</div>
+    <div class="ph-badge ph-done">✓ Kompletno</div>
+  </div>
+  <div class="ph-card done">
+    <div class="ph-num">Faza 5</div>
+    <div class="ph-title">Live draw screen — Socket.io</div>
+    <div class="ph-badge ph-done">✓ Kompletno</div>
+  </div>
+  <div class="ph-card partial">
+    <div class="ph-num">Faza 6</div>
+    <div class="ph-title">Winner verifikacija + archive</div>
+    <div class="ph-badge ph-partial">⚠ Delimično</div>
+  </div>
+  <div class="ph-card partial">
+    <div class="ph-num">Faza 7</div>
+    <div class="ph-title">Referral + email + analytics</div>
+    <div class="ph-badge ph-partial">⚠ Delimično</div>
+  </div>
+  <div class="ph-card partial">
+    <div class="ph-num">Faza 8</div>
+    <div class="ph-title">Embed widget + freemium</div>
+    <div class="ph-badge ph-partial">⚠ Delimično</div>
+  </div>
+  <div class="ph-card todo">
+    <div class="ph-num">Faza 9</div>
+    <div class="ph-title">Load testing + security + deploy</div>
+    <div class="ph-badge ph-todo">✗ Nije početo</div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <span class="legend-title">Legenda:</span>
+  <div class="leg-item"><div class="leg-dot lg"></div>Implementirano i radi</div>
+  <div class="leg-item"><div class="leg-dot lo"></div>Delimično / treba fix</div>
+  <div class="leg-item"><div class="leg-dot lr"></div>Nije implementirano / blokira</div>
+  <div class="leg-item"><div class="leg-dot ly"></div>Radi ali treba poboljšanje</div>
+</div>
+
+<!-- FILTER -->
+<div class="fbar">
+  <span class="flabel">Filter:</span>
+  <button class="fbtn on oc" onclick="doFilter('all',this)">Sve</button>
+  <button class="fbtn" onclick="doFilter('c',this)">🔴 Kritično</button>
+  <button class="fbtn" onclick="doFilter('h',this)">🟠 Visoko</button>
+  <button class="fbtn" onclick="doFilter('m',this)">🟡 Srednje</button>
+  <button class="fbtn" onclick="doFilter('done',this)">✅ Završeno</button>
+</div>
+
+<!-- ══════════════ CRITICAL ══════════════ -->
+<div class="sec">
+  <div class="sectitle">
+    <span style="color:var(--red);font-size:15px">●</span>
+    <span class="sectxt">Kritično — Blokira normalan rad</span>
+    <span class="seccnt" id="sc-c">2 taskova</span>
+  </div>
+
+  <!-- #01 BUG FIX -->
+  <div class="card c" data-p="c" id="t01">
+    <div class="ch" onclick="tog('t01')">
+      <div class="cbox" onclick="tick(event,'t01')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#01</span>
+          <span class="pbadge pc">KRITIČNO</span>
+          <span class="ftag exists">src/App.tsx</span>
+          <span class="ftag exists">src/components/HostDashboard.tsx</span>
+          <span class="ftag exists">src/utils/authHeaders.ts</span>
+        </div>
+        <div class="ctitle">3 buga: crash na array operacijama + auth redirect + authFetch header merge</div>
+        <div class="cdesc">giveaways.filter crash kad state nije učitan, login ne redirectuje pouzdano, authFetch ima edge case na header merge-u. Sve tri popravke su male i tačno lokalizovane.</div>
+      </div>
+      <div class="ctog" id="tog-t01">▾</div>
+    </div>
+    <div class="cbody" id="b-t01">
+      <div class="cbin">
+        <div class="warn-box">
+          <strong>Bug A:</strong> <code>HostDashboard.tsx</code> i <code>GiveawayPage.tsx</code> — props <code>giveaways</code> i <code>participants</code> nemaju default vrednost <code>[]</code>, pa kad fetch nije završen → crash.<br>
+          <strong>Bug B:</strong> <code>App.tsx</code> — <code>completeAuth()</code> poziva <code>setAuthModal({open:false})</code> ali <code>AuthModal.tsx</code> isto poziva <code>onClose()</code> kad je <code>result?.success</code> — dvostruko zatvaranje, timing issue.<br>
+          <strong>Bug C:</strong> <code>authHeaders.ts</code> — <code>authFetch</code> čita token kroz <code>getAuthHeaders()</code> koji vraća prazni objekat kad token ne postoji, pa <code>auth.Authorization</code> check može da promaši.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>U HostDashboard.tsx i GiveawayPage.tsx dodati default props: <code>giveaways = []</code>, <code>participants = []</code></span></li>
+          <li class="ti"><i class="arr">→</i><span>U App.tsx fetchGlobalState(): <code>Array.isArray(gwData) ? gwData : []</code> za sve tri varijable</span></li>
+          <li class="ti"><i class="arr">→</i><span>U AuthModal.tsx ukloniti <code>onClose()</code> poziv iz success bloka — App.tsx ga već zatvara</span></li>
+          <li class="ti"><i class="arr">→</i><span>U authHeaders.ts: direktno čitati <code>getAuthToken()</code> umesto kroz <code>getAuthHeaders()</code></span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p01')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p01">Fix 3 bugs in the Lootly codebase. All changes are small and targeted — do not refactor anything else.
+
+---
+
+BUG A — Defensive array guards (crashes with "giveaways.filter is not a function")
+
+In src/components/HostDashboard.tsx, change the props destructuring to add default values:
+FIND: ({ host, giveaways, participants, onCreateGiveaway, onDeleteGiveaway, onSelectRoute, onUpgradeHost })
+REPLACE WITH: ({ host, giveaways = [], participants = [], onCreateGiveaway, onDeleteGiveaway, onSelectRoute, onUpgradeHost })
+
+In src/components/GiveawayPage.tsx, find the props destructuring and add:
+participants = []
+as a default value for the participants prop.
+
+In src/App.tsx, inside fetchGlobalState(), change the three setGiveaways/setParticipants/setGlobalLogs lines to validate they are arrays:
+FIND: setGiveaways(gwData || []);
+REPLACE: setGiveaways(Array.isArray(gwData) ? gwData : []);
+
+Do the same for partData and logData wherever they are passed to setParticipants() and setGlobalLogs().
+
+---
+
+BUG B — Auth modal double-close causing timing issues
+
+In src/components/AuthModal.tsx, inside the handleSubmit function, find this block:
+    if (result?.success) {
+      setPassword('');
+      setEmail('');
+      setUsername('');
+      onClose();
+    }
+
+Remove the onClose() call — App.tsx's completeAuth() already closes the modal via setAuthModal. The block should become:
+    if (result?.success) {
+      setPassword('');
+      setEmail('');
+      setUsername('');
+    }
+
+---
+
+BUG C — authFetch token header edge case
+
+In src/utils/authHeaders.ts, find the authFetch function. Change:
+  const auth = getAuthHeaders();
+  if (auth.Authorization) {
+    headers.set('Authorization', auth.Authorization);
+  }
+
+Replace with:
+  const token = getAuthToken();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+This directly reads the token instead of going through the intermediate object, avoiding the empty-object edge case.
+
+---
+
+That is all 3 bugs. Do not touch any other files or logic.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #02 DRAW ANIMATION -->
+  <div class="card c" data-p="c" id="t02">
+    <div class="ch" onclick="tog('t02')">
+      <div class="cbox" onclick="tick(event,'t02')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#02</span>
+          <span class="pbadge pc">KRITIČNO</span>
+          <span class="ftag exists">src/pages/DrawPage.tsx</span>
+          <span class="ftag">GSAP → nije instaliran</span>
+        </div>
+        <div class="ctitle">DrawPage postoji ali nema animaciju — samo text update, bez GSAP drum roll efekta</div>
+        <div class="cdesc">socket.io je implementiran i emituje sve draw:* evente, ali DrawPage.tsx ih prikazuje samo kao plain text. Docs planiraju GSAP drum roll animaciju za "drum roll" efekat pri izvlačenju. GSAP nije u package.json.</div>
+      </div>
+      <div class="ctog" id="tog-t02">▾</div>
+    </div>
+    <div class="cbody" id="b-t02">
+      <div class="cbin">
+        <div class="warn-box">
+          <strong>✓ Postoji:</strong> <code>src/pages/DrawPage.tsx</code> — kompletna socket logika, sve draw:* evente sluša, confetti na win.<br>
+          <strong>✓ Postoji:</strong> <code>canvas-confetti</code> u package.json — confetti radi.<br>
+          <strong>Nedostaje:</strong> GSAP nije instaliran. Vizuelni drum roll efekat (scrollovanje usernames) ne postoji — samo se menja tekst u statusLine.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>Instalirati GSAP: <code>npm install gsap</code></span></li>
+          <li class="ti"><i class="arr">→</i><span>Na <code>draw:winner_drawn</code> eventu: animirati username "roulette" — brzo scrollovanje kroz nasumične usernames, pa usporavanje na pravog pobednika</span></li>
+          <li class="ti"><i class="arr">→</i><span>Na <code>draw:seed_revealed</code>: counter-up animacija za broj učesnika</span></li>
+          <li class="ti"><i class="arr">→</i><span>Na <code>draw:winner_verified</code> (passed=true): full screen confetti + trophy animacija</span></li>
+          <li class="ti"><i class="arr w\">⚠</i><span>Ne dirać socket logiku — samo dodati vizuelne efekte na postojeće event handlere</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p02')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p02">Add visual animation to the existing DrawPage in src/pages/DrawPage.tsx. The socket.io logic is complete and working — only add visual effects. Do NOT change any socket event handlers or state logic.
+
+EXISTING FILE: src/pages/DrawPage.tsx
+- Already imports: io from socket.io-client, confetti from canvas-confetti
+- Already handles all draw:* socket events: draw:started, draw:seed_revealed, draw:winner_drawn, draw:verifying, draw:winner_verified, draw:completed
+- Already has state: stage, statusLine, detailLine, winners, disqualified
+- Currently just updates statusLine text on each event — no animation
+
+WHAT TO DO:
+
+Step 1 — Install GSAP:
+Add to package.json dependencies: "gsap": "^3.12.5"
+
+Step 2 — Add GSAP import at top of DrawPage.tsx:
+import { gsap } from 'gsap';
+
+Step 3 — Add a ref for the drum roll display element:
+const drumRef = useRef<HTMLDivElement>(null);
+
+Step 4 — Create a helper function runDrumRoll(finalName: string, onComplete: () => void) that:
+- Shows drumRef element
+- Has an array of fake names to cycle through (pull 8-12 random entries from a hardcoded list of generic Instagram-style names like "user_8821", "the.real.alex", "gamer99", etc.)
+- Uses gsap.to() on a counter or innerHTML swap to cycle names quickly (every 80ms for 1s), then slow down (every 200ms for 0.5s), then land on finalName
+- Calls onComplete() after animation finishes
+- Use gsap.fromTo() for the final name reveal: scale from 1.4 to 1 with opacity 0→1
+
+Step 5 — In the socket event handler for 'draw:winner_drawn', instead of immediately updating statusLine, call:
+runDrumRoll(data.username, () => {
+  setStatusLine(`Winner drawn: @${data.username}`);
+  setDetailLine(`Draw hash: ${data.drawHash?.slice(0, 16)}...`);
+  setStage('winner_drawn');
+});
+
+Step 6 — In the socket handler for 'draw:seed_revealed':
+Add a gsap.from() animation on the seed display element:
+gsap.from('#seed-display', { duration: 0.6, y: 20, opacity: 0, ease: 'power2.out' });
+
+Step 7 — In the socket handler for 'draw:winner_verified' when passed === true:
+After the confetti call, add:
+gsap.fromTo('#winner-banner', { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' });
+
+Step 8 — Add an id="seed-display" to the element that shows the seed hash in the render, and id="winner-banner" to the winner announcement element. Add id="drum-display" to the drumRef element and style it as a large centered text (font-size: 2rem, font-family monospace, color amber/gold).
+
+Step 9 — On draw:completed, add a staggered entrance animation for the winners list:
+gsap.from('.winner-list-item', { duration: 0.4, y: 15, opacity: 0, stagger: 0.1, ease: 'power2.out' });
+Add class="winner-list-item" to each winner list element in the render.
+
+Keep all existing socket logic exactly as-is. Only add animation calls alongside existing state updates.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ HIGH ══════════════ -->
+<div class="sec">
+  <div class="sectitle">
+    <span style="color:var(--orange);font-size:15px">●</span>
+    <span class="sectxt">Visoko — Treba što pre za localhost testiranje</span>
+    <span class="seccnt" id="sc-h">3 taskova</span>
+  </div>
+
+  <!-- #03 TICKET WEIGHT UI -->
+  <div class="card h" data-p="h" id="t03">
+    <div class="ch" onclick="tog('t03')">
+      <div class="cbox" onclick="tick(event,'t03')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#03</span>
+          <span class="pbadge ph">VISOKO</span>
+          <span class="ftag exists">server.ts → radi</span>
+          <span class="ftag">src/components/GiveawayPage.tsx</span>
+        </div>
+        <div class="ctitle">Referral bonus tickets postoje na serveru ali UI ne prikazuje ticket weight vizuelno</div>
+        <div class="cdesc">ticketCount i referralBonusTickets su implementirani u server.ts i types. GiveawayPage prikazuje učesnike ali nigde se jasno ne vidi koliko tickets neko ima ni šta znači bonus weight. Korisnik ne razume zašto bi delio link.</div>
+      </div>
+      <div class="ctog" id="tog-t03">▾</div>
+    </div>
+    <div class="cbody" id="b-t03">
+      <div class="cbin">
+        <div class="done-box">
+          <strong>✓ Server radi:</strong> <code>participant.ticketCount</code> se čuva i referral bonus dodaje weight u draw pool.<br>
+          <strong>✓ Referral link postoji:</strong> HostDashboard ima share link sa ?ref= parametrom.<br>
+          <strong>Nedostaje:</strong> GiveawayPage ne prikazuje ticket count po učesniku, nema vizuelnog objašnjenja šta ticket weight znači.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>U participants listi u GiveawayPage: prikazati <code>🎟️ {ticketCount}x</code> pored svakog username-a</span></li>
+          <li class="ti"><i class="arr">→</i><span>Dodati info tooltip/box: "Više tiketa = veća šansa. Deli link da dobiješ bonus tiket."</span></li>
+          <li class="ti"><i class="arr">→</i><span>Ako korisnik dođe sa ?ref= parametrom, prikazati banner "Prijavljen si sa referral linkom — dobijaš bonus tiket!"</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p03')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p03">Add ticket weight visualization to the GiveawayPage. The backend already stores ticketCount per participant — just needs frontend display.
+
+EXISTING FILE: src/components/GiveawayPage.tsx
+- Receives props: giveaway (Giveaway type), participants (Participant[]), onJoinRequest, onVerifyRequest, onSelectRoute, referralCode (string)
+- The Participant type (in src/data.ts) has: instagramUsername, ticketCount (number), verifiedAt (string | null), referredBy (string | null)
+- The Giveaway type has: referralBonusTickets (number)
+
+WHAT TO DO:
+
+1. In the participants list section of GiveawayPage, wherever each participant is rendered (find the .map over participants), add a ticket count badge after the username:
+
+{p.ticketCount > 1 && (
+  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-[10px] text-amber-400 font-mono">
+    🎟️ {p.ticketCount}x
+  </span>
+)}
+
+If ticketCount is 1 (default), show nothing extra. If > 1, show the badge.
+
+2. Add a small info box above the participants list (or near the join section) explaining the referral system. Only show this if giveaway.referralBonusTickets > 0:
+
+<div className="text-xs text-slate-400 bg-slate-900/40 border border-slate-800 rounded-lg p-3 mb-4">
+  <span className="text-amber-400 font-semibold">🎟️ Ticket weight system:</span> Each verified participant gets 1 ticket. Share your referral link and earn +{giveaway.referralBonusTickets} bonus ticket(s) for every person who joins through your link — boosting your chances proportionally.
+</div>
+
+3. If referralCode prop is non-empty (user arrived via ?ref= link), show a banner at the top of the page (above the join form):
+
+<div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs text-amber-300">
+  🎁 You were referred by <strong>@{referralCode}</strong> — joining will give them a bonus ticket!
+</div>
+
+4. In the join form, after successful join, show: "You joined! Share your link to boost your chances:" and display the referral URL: window.location.origin + window.location.pathname + '?ref=' + username
+
+Do not change any join/verify logic, only add display elements.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #04 ARCHIVE PAGE completeness -->
+  <div class="card h" data-p="h" id="t04">
+    <div class="ch" onclick="tog('t04')">
+      <div class="cbox" onclick="tick(event,'t04')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#04</span>
+          <span class="pbadge ph">VISOKO</span>
+          <span class="ftag exists">src/pages/ArchivePage.tsx ✓</span>
+          <span class="ftag exists">server.ts /api/giveaway/:slug/archive ✓</span>
+        </div>
+        <div class="ctitle">ArchivePage postoji ali nije linkovan iz HostDashboard-a niti iz DrawPage-a posle završetka</div>
+        <div class="cdesc">Stranica i endpoint su implementirani. Ali posle draw-a korisnik ne dobija link ka archive stranici. HostDashboard ima proofArchiveRoute logiku ali nema dugme koje je vidljivo u UI.</div>
+      </div>
+      <div class="ctog" id="tog-t04">▾</div>
+    </div>
+    <div class="cbody" id="b-t04">
+      <div class="cbin">
+        <div class="done-box">
+          <strong>✓ Postoji:</strong> <code>src/pages/ArchivePage.tsx</code> — kompletna stranica sa svim provably fair podacima.<br>
+          <strong>✓ Postoji:</strong> <code>GET /api/giveaway/:slug/archive</code> — endpoint vraća sve draw podatke.<br>
+          <strong>✓ Postoji:</strong> <code>App.tsx</code> ima <code>proofArchiveRoute</code> varijablu i nav dugme.<br>
+          <strong>Nedostaje:</strong> Posle draw:completed eventa u DrawPage nema CTA dugmeta za archive. U HostDashboard completed kampanje nemaju vidljiv "View Proof" link.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>U DrawPage.tsx: kad stage === 'completed', prikazati dugme "📋 View Public Proof Archive" koje naviguje na /giveaway/:slug/archive</span></li>
+          <li class="ti"><i class="arr">→</i><span>U HostDashboard.tsx: u listi completed kampanja dodati "View Archive" link pored svake</span></li>
+          <li class="ti"><i class="arr">→</i><span>U ArchivePage.tsx: dodati "Copy Archive Link" dugme koje kopira trenutni URL</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p04')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p04">Add archive link CTAs in three places. The archive page and endpoint already work — just need to surface them.
+
+EXISTING FILES:
+- src/pages/DrawPage.tsx — has stage state ('completed' when draw done), has slug prop, has onSelectRoute prop
+- src/components/HostDashboard.tsx — has giveaways prop, renders completed giveaways in a list. Has onSelectRoute prop.
+- src/pages/ArchivePage.tsx — full archive page, renders draw proof. Has slug prop. Already has a "Copy Archive Link" button? Check and add if missing.
+
+WHAT TO DO:
+
+1. In src/pages/DrawPage.tsx, find the section that renders when stage === 'completed' (it shows winners and disqualified). Add below the winners list:
+
+<div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+  <button
+    onClick={() => onSelectRoute?.(`/giveaway/${slug}/archive`)}
+    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2"
+  >
+    📋 View Public Proof Archive
+  </button>
+  <button
+    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/giveaway/${slug}/archive`).then(() => alert('Archive link copied!'))}
+    className="px-5 py-2.5 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold rounded-xl transition cursor-pointer"
+  >
+    🔗 Copy Archive Link
+  </button>
+</div>
+
+2. In src/components/HostDashboard.tsx, find where completed giveaways are rendered in the list (look for g.status === 'completed'). In each completed giveaway's card/row, add a small link:
+
+<button
+  onClick={() => onSelectRoute(`/giveaway/${g.slug}/archive`)}
+  className="text-xs text-amber-400 hover:text-amber-300 underline cursor-pointer"
+>
+  View Proof Archive →
+</button>
+
+3. In src/pages/ArchivePage.tsx, check if there's already a "Copy Archive Link" button. If not, add one near the top:
+
+<button
+  onClick={() => navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!'))}
+  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition cursor-pointer border border-slate-700"
+>
+  🔗 Copy Archive Link
+</button>
+
+Do not change any data fetching or rendering logic in ArchivePage.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #05 LOCALHOST ENV SETUP -->
+  <div class="card h" data-p="h" id="t05">
+    <div class="ch" onclick="tog('t05')">
+      <div class="cbox" onclick="tick(event,'t05')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#05</span>
+          <span class="pbadge ph">VISOKO</span>
+          <span class="ftag">.env → kreirati za localhost</span>
+          <span class="ftag exists">.env.example ✓</span>
+        </div>
+        <div class="ctitle">Localhost .env setup — Redis, BullMQ i scraper su opcioni ali mogu crashovati server ako nisu konfigurisani</div>
+        <div class="cdesc">Server koristi BullMQ za scrape queue i opcionalni Redis. Ako Redis nije pokrenut na localhost, server može da crasha ili da se "zaglavi" na scrape requestima. Za čisti lokalni development potrebno je da server radi bez Redisa i bez pravog scrapera.</div>
+      </div>
+      <div class="ctog" id="tog-t05">▾</div>
+    </div>
+    <div class="cbody" id="b-t05">
+      <div class="cbin">
+        <div class="warn-box">
+          <strong>✓ SCRAPER_SANDBOX=true</strong> već postoji u .env.example — preskače Puppeteer.<br>
+          <strong>Problem:</strong> BullMQ pokušava da se konektuje na Redis čak i kad SCRAPER_SANDBOX=true. Ako Redis nije up → <code>startScrapeQueue()</code> može da baci grešku i blokira server start.<br>
+          <strong>Treba:</strong> Kreirati <code>.env</code> fajl za localhost + osigurati da server uvek starta bez Redisa u dev modu.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>Kreirati <code>.env</code> fajl za localhost sa minimalnim vrednostima</span></li>
+          <li class="ti"><i class="arr">→</i><span>U <code>server/queue/scrapeQueue.ts</code>: wrap Redis/BullMQ init u try/catch — ako Redis nije dostupan, loguj warning ali nastavi rad</span></li>
+          <li class="ti"><i class="arr">→</i><span>Ako SCRAPER_SANDBOX=true: preskočiti Redis konekciju u potpunosti</span></li>
+          <li class="ti"><i class="arr w">⚠</i><span><code>.env</code> je u <code>.gitignore</code> — ne commitovati pravi JWT_SECRET</span></li>
+        </ul>
+        <div class="csnip"><span class="c"># .env za localhost (kreirati ručno, ne commitovati)</span>
+<span class="v">PORT</span>=<span class="s">3000</span>
+<span class="v">JWT_SECRET</span>=<span class="s">dev-local-secret-minimum-32-chars-ok</span>
+<span class="v">SCRAPER_SANDBOX</span>=<span class="s">true</span>
+<span class="v">DISABLE_IP_RATE_LIMIT</span>=<span class="s">true</span>
+<span class="v">BASE_URL</span>=<span class="s">http://localhost:3000</span>
+<span class="c"># Redis: ostaviti prazno ili zakomentarisati za dev bez Redis-a</span>
+<span class="c"># REDIS_URL=redis://127.0.0.1:6379</span></div>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p05')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p05">Make the server start cleanly on localhost without Redis. Two changes needed.
+
+EXISTING FILE: server/queue/scrapeQueue.ts
+- Has startScrapeQueue() function that initializes BullMQ with Redis connection
+- Has isBullMqActive() export
+
+WHAT TO DO:
+
+1. Create a .env file in the project root (if it doesn't exist) with these contents — tell me to create it manually since it's gitignored:
+PORT=3000
+JWT_SECRET=dev-local-secret-change-this-in-production-min32
+SCRAPER_SANDBOX=true
+DISABLE_IP_RATE_LIMIT=true
+BASE_URL=http://localhost:3000
+
+2. In server/queue/scrapeQueue.ts, modify startScrapeQueue() to handle missing Redis gracefully:
+
+Find the startScrapeQueue function and wrap the BullMQ/Redis initialization in a try/catch:
+
+export async function startScrapeQueue(): Promise<void> {
+  // If sandbox mode, skip Redis entirely
+  if (process.env.SCRAPER_SANDBOX === 'true') {
+    console.log('[ScrapeQueue] Sandbox mode — skipping Redis/BullMQ init');
+    return;
+  }
+  
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    console.warn('[ScrapeQueue] REDIS_URL not set — BullMQ disabled. Set SCRAPER_SANDBOX=true for local dev.');
+    return;
+  }
+  
+  try {
+    // existing BullMQ init code here
+    // ...existing code...
+    console.log('[ScrapeQueue] BullMQ queue started');
+  } catch (err) {
+    console.warn('[ScrapeQueue] Failed to connect to Redis — scrape queue disabled:', err instanceof Error ? err.message : err);
+    // Do NOT throw — server should still start
+  }
+}
+
+3. Also check enqueueBioScrapeJob() in the same file — if BullMQ is not active (queue is null/undefined), it should fall back to inline processing:
+
+In enqueueBioScrapeJob(), if the queue is not initialized, return a fake jobId and process the scrape synchronously (inline) instead of throwing. Something like:
+  if (!queue) {
+    // Inline fallback when BullMQ not available
+    console.log('[ScrapeQueue] Inline mode — processing scrape directly');
+    // ... process directly ...
+    return 'inline-' + Date.now();
+  }
+
+4. In server.ts, the line await startScrapeQueue() in startServer() should NOT be awaited with possibility of throwing. Wrap it:
+  try { await startScrapeQueue(); } catch (e) { console.warn('[Server] Queue init failed, continuing:', e); }
+
+Make sure the server always starts even if Redis is completely down.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MEDIUM ══════════════ -->
+<div class="sec">
+  <div class="sectitle">
+    <span style="color:var(--yellow);font-size:15px">●</span>
+    <span class="sectxt">Srednje — Polishing i UX</span>
+    <span class="seccnt" id="sc-m">2 taskova</span>
+  </div>
+
+  <!-- #06 FREEMIUM ENFORCEMENT UI -->
+  <div class="card m" data-p="m" id="t06">
+    <div class="ch" onclick="tog('t06')">
+      <div class="cbox" onclick="tick(event,'t06')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#06</span>
+          <span class="pbadge pm">SREDNJE</span>
+          <span class="ftag exists">server.ts → plan check radi</span>
+          <span class="ftag">src/components/HostDashboard.tsx</span>
+        </div>
+        <div class="ctitle">Freemium plan limit postoji na serveru ali UI ne objašnjava zašto create ne radi</div>
+        <div class="cdesc">Server odbija kreiranje kampanje za free plan kad su dostigli limit, ali frontend samo prikazuje server error string. Nema jasnog CTA za upgrade niti progress indikator koliko kampanja je iskorišćeno.</div>
+      </div>
+      <div class="ctog" id="tog-t06">▾</div>
+    </div>
+    <div class="cbody" id="b-t06">
+      <div class="cbin">
+        <div class="done-box">
+          <strong>✓ Server radi:</strong> <code>host.plan === 'free'</code> check u <code>/api/giveaway/create</code> — odbija ako je dostignut limit.<br>
+          <strong>✓ Postoji:</strong> <code>onUpgradeHost</code> prop u HostDashboard — poziva <code>showToast('Coming soon')</code>.<br>
+          <strong>Nedostaje:</strong> UI ne prikazuje "X/3 kampanja iskorišćeno" niti jasan upgrade CTA kad limit bude dostignut.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr">→</i><span>U HostDashboard: prikazati "2/3 kampanja" progress bar za free plan korisnike</span></li>
+          <li class="ti"><i class="arr">→</i><span>Kad server vrati grešku o limitu: prikazati modal/banner sa upgrade CTA umesto generic error stringa</span></li>
+          <li class="ti"><i class="arr">→</i><span>Označiti watermark badge na giveaway karticama za free plan (watermark: true je već u response-u)</span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p06')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p06">Improve the freemium plan UI in HostDashboard. The server-side limits already work — just need better UI feedback.
+
+EXISTING FILE: src/components/HostDashboard.tsx
+- Has host prop (HostUser type with plan: 'free' | 'pro')
+- Has giveaways prop (all giveaways)
+- Has onUpgradeHost prop (function)
+- Has onCreateGiveaway prop that returns { error?: string } or the new giveaway
+- Already filters: const myGiveaways = giveaways.filter(g => g.hostId === host.id)
+- Server returns error message "Free plan limit reached" (or similar) when campaign limit hit
+
+WHAT TO DO:
+
+1. Add a plan status bar near the top of HostDashboard, visible only for free plan hosts, showing current usage. Add after the host greeting section:
+
+{host.plan === 'free' && (
+  <div className="mb-6 p-4 bg-slate-900/60 border border-slate-800 rounded-xl">
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Free Plan Usage</span>
+      <button onClick={onUpgradeHost} className="text-xs text-amber-400 hover:text-amber-300 underline cursor-pointer">Upgrade to Pro →</button>
+    </div>
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+        <div 
+          className="h-full bg-amber-500 rounded-full transition-all"
+          style={{ width: `${Math.min((myGiveaways.length / 3) * 100, 100)}%` }}
+        />
+      </div>
+      <span className="text-xs text-slate-300 font-mono whitespace-nowrap">{myGiveaways.length} / 3 campaigns</span>
+    </div>
+    {myGiveaways.length >= 3 && (
+      <p className="mt-2 text-xs text-amber-400">Campaign limit reached. Upgrade to Pro for unlimited campaigns.</p>
+    )}
+  </div>
+)}
+
+2. In the onCreateGiveaway handler within HostDashboard (or wherever the create form submit is handled), if the result has an error that contains "limit" or "plan" or "upgrade" in the message (case-insensitive), show a special upgrade prompt instead of just the error string:
+
+const isLimitError = result?.error && /limit|plan|upgrade|maximum/i.test(result.error);
+if (isLimitError) {
+  // Show upgrade prompt
+  showUpgradePrompt(); // or call onUpgradeHost()
+} else if (result?.error) {
+  // Show normal error
+}
+
+3. In the giveaway cards list, if giveaway has watermark: true (it's in the giveaway object), add a small badge:
+
+{g.watermark && (
+  <span className="text-[10px] text-slate-500 bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded">
+    FREE
+  </span>
+)}
+
+Only add display changes — do not modify any API calls or business logic.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- #07 LIVE CHAT STUB -->
+  <div class="card m" data-p="m" id="t07">
+    <div class="ch" onclick="tog('t07')">
+      <div class="cbox" onclick="tick(event,'t07')"></div>
+      <div class="cmeta">
+        <div class="ctop">
+          <span class="cid">#07</span>
+          <span class="pbadge pm">SREDNJE</span>
+          <span class="ftag exists">src/components/LiveChatFab.tsx</span>
+          <span class="ftag">Tawk.to → dodati</span>
+        </div>
+        <div class="ctitle">LiveChatFab je stub — prikazuje samo "Coming soon" toast, nema pravi chat</div>
+        <div class="cdesc">Dugme postoji i izgleda dobro ali onClick samo prikazuje toast. Za produkciju treba Tawk.to ili Crisp widget koji se učitava na klik. Besplatno, bez servera.</div>
+      </div>
+      <div class="ctog" id="tog-t07">▾</div>
+    </div>
+    <div class="cbody" id="b-t07">
+      <div class="cbin">
+        <div class="warn-box">
+          <strong>Opcija A:</strong> Tawk.to — besplatan, script tag, bez API ključa za testiranje.<br>
+          <strong>Opcija B:</strong> Ostaviti kao stub za localhost (nije bitno za lokalni dev).<br>
+          <strong>Preporuka za sada:</strong> Implementirati Tawk.to samo ako planiraš live testiranje sa pravim korisnicima. Za localhost razvoj može da ostane stub.
+        </div>
+        <ul class="todos">
+          <li class="ti"><i class="arr w">⚠</i><span>Za localhost dev ovo nije prioritet — skip ako ne testiraš sa korisnicima</span></li>
+          <li class="ti"><i class="arr">→</i><span>Ako hoćeš pravi chat: kreirati nalog na tawk.to, dobiti Property ID, dodati script u index.html</span></li>
+          <li class="ti"><i class="arr">→</i><span>LiveChatFab.tsx onClick: umesto toast → <code>window.Tawk_API?.toggle()</code></span></li>
+        </ul>
+        <div class="psec">
+          <div class="phead">
+            <span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+            <button class="copybtn" onclick="cp('p07')">⎘ COPY</button>
+          </div>
+          <div class="ptext" id="p07">Integrate Tawk.to live chat with the existing LiveChatFab component. Only do this if you have a Tawk.to account — if not, skip this task.
+
+EXISTING FILE: src/components/LiveChatFab.tsx
+- Currently: onClick shows a "Coming soon" toast
+- Has a MessageCircle icon button at bottom-right of screen
+
+EXISTING FILE: index.html (root of project)
+
+WHAT TO DO:
+
+1. In index.html, add the Tawk.to script before </body>. Replace YOUR_PROPERTY_ID and YOUR_WIDGET_ID with your actual Tawk.to IDs (found in your Tawk.to dashboard under Administration > Chat Widget):
+
+<script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/YOUR_PROPERTY_ID/YOUR_WIDGET_ID';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+  })();
+</script>
+
+2. In src/components/LiveChatFab.tsx, replace the onClick handler:
+
+FIND:
+  onClick={() => showToast(t('liveChat.comingSoon'), 'info')}
+
+REPLACE WITH:
+  onClick={() => {
+    if (typeof window !== 'undefined' && (window as any).Tawk_API) {
+      (window as any).Tawk_API.toggle();
+    } else {
+      showToast(t('liveChat.comingSoon'), 'info');
+    }
+  }}
+
+3. Also add Tawk_API hide on load so the default widget button is hidden (we use our custom FAB):
+In index.html, inside the Tawk.to script, add to the Tawk_API initialization:
+  Tawk_API.onLoad = function() {
+    Tawk_API.hideWidget();
+  };
+
+This keeps our custom FAB button but connects to Tawk.to when clicked.
+
+If you don't have a Tawk.to account, skip this entire task — the current "Coming soon" toast is fine for local development.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ DONE ══════════════ -->
+<div class="sec">
+  <div class="sectitle">
+    <span style="color:var(--green);font-size:15px">●</span>
+    <span class="sectxt">Završeno — Verifikovano u kodu</span>
+    <span class="seccnt">7 implementirano</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:14px 16px;">
+      <div style="color:var(--green);font-size:10px;margin-bottom:6px;">✓ JWT Auth + Middleware</div>
+      <div style="font-size:12px;color:var(--muted2);">server/auth/middleware.ts · requireAuth na svim zaštićenim rutama · 7d token expiry</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:14px 16px;">
+      <div style="color:var(--green);font-size:10px;margin-bottom:6px;">✓ Socket.io Live Draw</div>
+      <div style="font-size:12px;color:var(--muted2);">Sve draw:* evente emituje · DrawPage.tsx konektuje se i sluša · confetti na win</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:14px 16px;">
+      <div style="color:var(--green);font-size:10px;margin-bottom:6px;">✓ Helmet + Rate Limiting</div>
+      <div style="font-size:12px;color:var(--muted2);">100 req/15min globalno · 10 req/10min na auth rutama · trust proxy podešen</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:14px 16px;">
+      <div style="color:var(--green);font-size:10px;margin-bottom:6px;">✓ Follow Verifikacija</div>
+      <div style="font-size:12px;color:var(--muted2);">scrapeFollowingList() implementiran · Puppeteer + RapidAPI fallback · sandbox mode preskače</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:14px 16px;">
+      <div style="color:var(--green);font-size:10px;margin-bottom:6px;">✓ Archive Stranica + Endpoint</div>
+      <div style="font-size:12px;color:var(--muted2);">GET /api/giveaway/:slug/archive · ArchivePage.tsx sa seed proof i SHA256 verifikacijom</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:14px 16px;">
+      <div style="color:var(--green);font-size:10px;margin-bottom:6px;">✓ Email Notifikacije (Resend)</div>
+      <div style="font-size:12px;color:var(--muted2);">server/services/email.ts · sendWinnerEmail() · graceful skip ako RESEND_API_KEY nije setovan</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:14px 16px;">
+      <div style="color:var(--green);font-size:10px;margin-bottom:6px;">✓ Verify Page + i18n + Notifications</div>
+      <div style="font-size:12px;color:var(--muted2);">VerifyPage.tsx · sr/en lokalizacija 342 linija · HostNotifications bell ikona sa dismiss/read stanjem</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<!-- PROGRESS FOOTER -->
+<div class="pbar-wrap">
+  <span class="pbl">Napredak</span>
+  <div class="pbbar"><div class="pbfill" id="pbf"></div></div>
+  <span class="pbpct" id="pbp">0%</span>
+  <span class="pbcnt" id="pbc">0 / 7 završeno</span>
+</div>
+
+<script>
+const TOTAL = 7;
+
+function tog(id) {
+  const b = document.getElementById('b-' + id);
+  const t = document.getElementById('tog-' + id);
+  if (!b) return;
+  b.classList.toggle('open');
+  t.classList.toggle('open');
+}
+
+function tick(e, id) {
+  e.stopPropagation();
+  const card = document.getElementById(id);
+  const box = card.querySelector('.cbox');
+  const on = box.classList.toggle('ticked');
+  box.textContent = on ? '✓' : '';
+  card.classList.toggle('done-card', on);
+  save(); updateBar(); updateCounts();
+}
+
+function cp(pid) {
+  const el = document.getElementById(pid);
+  if (!el) return;
+  const text = el.textContent.trim();
+  const btns = document.querySelectorAll(`[onclick="cp('${pid}')"]`);
+  navigator.clipboard.writeText(text).then(() => {
+    btns.forEach(b => { b.textContent = '✓ COPIED!'; b.classList.add('ok'); });
+    setTimeout(() => btns.forEach(b => { b.textContent = '⎘ COPY'; b.classList.remove('ok'); }), 2200);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+
+function doFilter(type, btn) {
+  document.querySelectorAll('.fbtn').forEach(b => {
+    b.classList.remove('on','oo','oy','og','oc');
+  });
+  btn.classList.add('on');
+  if (type === 'all') btn.classList.add('oc');
+  if (type === 'h') btn.classList.add('oo');
+  if (type === 'm') btn.classList.add('oy');
+  if (type === 'done') btn.classList.add('og');
+
+  document.querySelectorAll('.card').forEach(card => {
+    const p = card.dataset.p;
+    const done = card.classList.contains('done-card');
+    if (type === 'all') { card.classList.remove('hidden'); return; }
+    if (type === 'done') { card.classList.toggle('hidden', !done); return; }
+    card.classList.toggle('hidden', p !== type);
+  });
+}
+
+function updateBar() {
+  const done = document.querySelectorAll('.cbox.ticked').length;
+  const pct = Math.round((done / TOTAL) * 100);
+  document.getElementById('pbf').style.width = pct + '%';
+  document.getElementById('pbp').textContent = pct + '%';
+  document.getElementById('pbc').textContent = done + ' / ' + TOTAL + ' završeno';
+}
+
+function updateCounts() {
+  ['c','h','m'].forEach(p => {
+    const cards = document.querySelectorAll(`.card[data-p="${p}"]`);
+    const done = [...cards].filter(c => c.classList.contains('done-card')).length;
+    const el = document.getElementById('cnt-' + p);
+    if (el) el.textContent = cards.length - done;
+  });
+  document.getElementById('cnt-done').textContent = document.querySelectorAll('.cbox.ticked').length;
+}
+
+function save() {
+  const s = {};
+  document.querySelectorAll('.card').forEach(c => { s[c.id] = c.classList.contains('done-card'); });
+  try { localStorage.setItem('lootly_v3', JSON.stringify(s)); } catch(e) {}
+}
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('lootly_v3') || '{}');
+    Object.entries(s).forEach(([id, done]) => {
+      if (!done) return;
+      const card = document.getElementById(id); if (!card) return;
+      const box = card.querySelector('.cbox');
+      box.classList.add('ticked'); box.textContent = '✓';
+      card.classList.add('done-card');
+    });
+  } catch(e) {}
+  updateBar(); updateCounts();
+}
+
+window.addEventListener('load', () => {
+  load();
+  setTimeout(() => { document.getElementById('pbf').style.transition = 'width .8s ease'; }, 200);
+});
+</script>
+</body>
+</html>

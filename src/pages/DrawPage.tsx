@@ -366,19 +366,28 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
           </div>
 
           <p
-            id="winner-banner"
-            key={statusLine}
-            className="text-lg font-semibold text-white animate-pulse"
+            className={`text-lg font-semibold text-white ${
+              ['started', 'seed_revealed', 'winner_drawn', 'verifying'].includes(stage)
+                ? 'animate-pulse'
+                : ''
+            }`}
           >
             {statusLine}
           </p>
-          {detailLine && (
+          {stage === 'winner_verified' && winners.length > 0 && (
             <p
-              id={stage === 'seed_revealed' ? 'seed-display' : undefined}
-              className="text-xs text-slate-400 mt-3 font-mono leading-relaxed break-words"
+              id="winner-banner"
+              className="text-xl font-bold text-emerald-400 mt-2"
             >
-              {detailLine}
+              🏆 Winner confirmed!
             </p>
+          )}
+          {detailLine && (
+            <div id="seed-display">
+              <p className="text-xs text-slate-400 mt-3 font-mono leading-relaxed break-words">
+                {detailLine}
+              </p>
+            </div>
           )}
 
           {stage === 'completed' && winners.length > 0 && (

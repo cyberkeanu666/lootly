@@ -65,6 +65,7 @@ export default function App() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [globalLogs, setGlobalLogs] = useState<VerificationLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [serverOffline, setServerOffline] = useState(false);
   const [referralsQueryCode, setReferralsQueryCode] = useState('');
   const [authModal, setAuthModal] = useState<{ open: boolean; mode: 'login' | 'register' }>({
     open: false,
@@ -92,6 +93,7 @@ export default function App() {
       const gwRes = await fetch('/api/giveaways');
       const gwData = await gwRes.json();
       setGiveaways(Array.isArray(gwData) ? gwData : []);
+      setServerOffline(false);
 
       const routeParts = currentRoute.split('/').filter((p) => p.length > 0);
       const slugName = routeParts[0] === 'giveaway' ? routeParts[1] : null;
@@ -125,6 +127,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('[Lootly State Engine] Failed to sync data with server:', err);
+      setServerOffline(true);
     } finally {
       setLoading(false);
     }
@@ -132,7 +135,10 @@ export default function App() {
 
   useEffect(() => {
     fetchGlobalState();
-    const activePoll = setInterval(fetchGlobalState, 5000);
+    // Use faster polling on draw routes, slower elsewhere
+    const isDrawRoute = currentRoute.includes('/draw') || currentRoute === '/live-draw';
+    const pollInterval = isDrawRoute ? 5000 : 20000;
+    const activePoll = setInterval(fetchGlobalState, pollInterval);
     return () => clearInterval(activePoll);
   }, [currentRoute, host?.id]);
 
@@ -555,7 +561,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#040813] text-[#f1f5f9] flex flex-col font-sans transition-all selection:bg-amber-500/20 selection:text-amber-300">
-      
+
+      {serverOffline && (
+        <div className="bg-red-950 border-b border-red-800 px-4 py-2.5 text-center text-sm text-red-200">
+          <span className="mr-2" aria-hidden>
+            ⚠
+          </span>
+          Backend server is offline — run npm run dev in your terminal
+        </div>
+      )}
+
       {/* Ultra-Modern Premium Unified Header with Active Navigation Menus */}
       <header className="border-b border-slate-800/60 bg-[#060a15]/90 sticky top-0 z-45 backdrop-blur-xl px-4 sm:px-8 py-4.5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 transition-all duration-300">
         <div className="flex items-center justify-between w-full xl:w-auto">
@@ -738,7 +753,7 @@ export default function App() {
       </header>
       
       {/* Route Render Core View */}
-      <main className="flex-1">
+      <main className={`flex-1 ${serverOffline ? 'mt-8' : ''}`}>
         {renderPlatformPage()}
       </main>
 

@@ -105,7 +105,7 @@ async function startServer() {
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
-    skip: () => process.env.NODE_ENV === 'test',
+    skip: () => process.env.NODE_ENV !== 'production',
     message: { error: 'Too many requests — slow down.' },
   });
 
@@ -113,6 +113,7 @@ async function startServer() {
     windowMs: 10 * 60 * 1000,
     max: 10,
     message: { error: 'Too many auth attempts. Try again in 10 minutes.' },
+    skip: () => process.env.NODE_ENV !== 'production',
   });
 
   app.use('/api', apiLimiter);
@@ -655,6 +656,31 @@ async function startServer() {
     });
 
     res.status(202).json({ jobId, status: 'queued' });
+  });
+
+  app.post('/api/participants/refresh-code', async (req, res) => {
+    const { participantId } = req.body;
+    if (!participantId) return res.status(400).json({ error: 'participantId required' });
+
+    const dbData = await readDatabase();
+    const idx = dbData.participants.findIndex((p) => p.id === participantId);
+    if (idx === -1) return res.status(404).json({ error: 'Participant not found.' });
+
+    const participant = dbData.participants[idx];
+    if (participant.verifiedAt) {
+      return res.status(400).json({ error: 'Already verified — no need to refresh.' });
+    }
+
+    const newCode = generateVerificationCode(participant.giveawayId);
+    dbData.participants[idx] = {
+      ...participant,
+      verificationCode: newCode,
+      verificationExpiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      verificationAttempts: 0,
+    };
+    await writeDatabase(dbData);
+
+    res.json({ verificationCode: newCode, verificationCodeNum: newCode });
   });
 
   app.get('/api/participants/verify-status/:jobId', async (req, res) => {

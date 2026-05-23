@@ -82,15 +82,15 @@ export default function GiveawayPage({
   const startScrapeVerification = async () => {
     setIsVerifying(true);
     setVerifyStep(1);
-    setVerifyMessage('Instantiating headless scraper client threads...');
+    setVerifyMessage('Checking your Instagram profile…');
 
-    setVerifyStep(1);
-    setVerifyMessage('Job queued in BullMQ — waiting for Puppeteer worker...');
+    setVerifyStep(2);
+    setVerifyMessage('Looking for your verification code in bio…');
 
     const res = await onVerifyRequest(participantId);
 
     if (res?.stage) {
-      setVerifyMessage(res.stage);
+      setVerifyMessage('Finalizing verification…');
       setVerifyStep(5);
     }
     setIsVerifying(false);
@@ -99,7 +99,27 @@ export default function GiveawayPage({
       setSuccessJoin(true);
       setCreatedParticipant(res.participant);
     } else {
-      setErrorMessage(res?.message || 'Code Signature not found in your bios signature! Please confirm code is correctly formatted and update bio settings to public.');
+      setErrorMessage(
+        res?.message ||
+          'Verification code not found in your Instagram bio. Make sure: (1) Your profile is public, (2) The code is copied exactly as shown, (3) Wait 1-2 minutes after saving your bio, then try again.'
+      );
+    }
+  };
+
+  const refreshCode = async () => {
+    if (!participantId) return;
+    setErrorMessage('');
+    const res = await fetch('/api/participants/refresh-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId }),
+    });
+    const data = await res.json();
+    if (data.verificationCodeNum) {
+      setVerificationCode(data.verificationCodeNum);
+      setErrorMessage('');
+    } else {
+      setErrorMessage(data.error || 'Failed to refresh code.');
     }
   };
 
@@ -250,9 +270,22 @@ export default function GiveawayPage({
             
             {/* Error diagnostics banner */}
             {errorMessage && (
-              <div className="p-3 bg-red-950/20 border border-red-900/40 text-[#ff8080] text-xs font-mono rounded-xl leading-relaxed">
-                <AlertTriangle className="h-4 w-4 inline mr-1.5 align-text-bottom shrink-0" />
-                {errorMessage}
+              <div className="p-3 bg-red-950/20 border border-red-900/40 text-[#ff8080] text-xs font-mono rounded-xl leading-relaxed flex flex-col gap-2">
+                <div>
+                  <AlertTriangle className="h-4 w-4 inline mr-1.5 align-text-bottom shrink-0" />
+                  {errorMessage}
+                </div>
+                {(errorMessage.toLowerCase().includes('expired') ||
+                  errorMessage.toLowerCase().includes('attempt')) &&
+                  participantId && (
+                    <button
+                      type="button"
+                      onClick={refreshCode}
+                      className="text-left text-amber-400 hover:text-amber-300 text-xs font-semibold cursor-pointer"
+                    >
+                      🔄 Get a new verification code
+                    </button>
+                  )}
               </div>
             )}
 
@@ -366,7 +399,14 @@ export default function GiveawayPage({
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
-                      <span className="text-slate-200">{verifyStep}/5: {verifyMessage}</span>
+                      <span className="text-slate-200">
+                        {verifyStep}/5: {verifyMessage}
+                        {isVerifying ? (
+                          <span className="inline-block w-4 animate-pulse">...</span>
+                        ) : (
+                          ''
+                        )}
+                      </span>
                     </div>
                     <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
                       <div className="bg-amber-500 h-full transition-all duration-300" style={{ width: `${verifyStep * 20}%` }}></div>

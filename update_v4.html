@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lootly — Cursor Task Board v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Unbounded:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+	--bg:#03050a; --bg2:#080d18; --bg3:#0d1525; --bg4:#121e35;
+	--border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.13);
+	--red:#ff3b3b; --orange:#ff8c00; --yellow:#f5c842;
+	--green:#00e87a; --blue:#3b9eff; --cyan:#00d4ff;
+	--text:#e8edf5; --muted:#4a5568; --muted2:#8899aa;
+	--mono:'JetBrains Mono',monospace; --head:'Unbounded',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.012) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:-250px;left:50%;transform:translateX(-50%);width:1000px;height:600px;background:radial-gradient(ellipse,rgba(0,232,122,0.04) 0%,transparent 65%);pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 24px 100px;}
+
+header{padding:52px 0 44px;border-bottom:1px solid var(--border2);margin-bottom:44px;}
+.hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.logo{font-family:var(--head);font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
+.logo span{color:var(--green);}
+h1{font-family:var(--head);font-size:clamp(26px,4.5vw,44px);font-weight:900;line-height:1.05;letter-spacing:-1px;}
+h1 em{font-style:normal;color:var(--red);}
+.hsub{margin-top:10px;color:var(--muted2);font-size:12px;max-width:520px;line-height:1.9;}
+.hsub strong{color:var(--cyan);}
+
+.stats{display:flex;gap:1px;background:var(--border);border:1px solid var(--border2);border-radius:10px;overflow:hidden;flex-shrink:0;align-self:flex-end;}
+.sbox{padding:14px 22px;background:var(--bg2);text-align:center;min-width:84px;}
+.sn{font-family:var(--head);font-size:20px;font-weight:700;display:block;}
+.sn.r{color:var(--red);} .sn.o{color:var(--orange);} .sn.y{color:var(--yellow);} .sn.g{color:var(--green);}
+.sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;display:block;}
+
+/* DIAGNOSIS BOX */
+.diag{background:var(--bg2);border:1px solid rgba(255,59,59,0.3);border-radius:12px;padding:20px 24px;margin-bottom:40px;}
+.diag-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--red);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.diag-title::before{content:'⚠';}
+.diag-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start;}
+.diag-row:last-child{border-bottom:none;}
+.diag-label{color:var(--red);min-width:180px;flex-shrink:0;font-weight:700;}
+.diag-val{color:var(--muted2);line-height:1.6;}
+.diag-val code{color:var(--cyan);background:rgba(0,212,255,.07);padding:1px 5px;border-radius:3px;}
+
+.fbar{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;align-items:center;}
+.flabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-right:4px;}
+.fbtn{padding:5px 13px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;}
+.fbtn:hover{color:var(--text);background:var(--bg3);}
+.fbtn.on{background:var(--red);border-color:var(--red);color:#fff;}
+.fbtn.on.oo{background:var(--orange);border-color:var(--orange);}
+.fbtn.on.oy{background:var(--yellow);border-color:var(--yellow);color:#000;}
+.fbtn.on.og{background:var(--green);border-color:var(--green);color:#000;}
+.fbtn.on.oc{background:var(--cyan);border-color:var(--cyan);color:#000;}
+
+.sec{margin-bottom:44px;}
+.sectitle{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.sectxt{font-family:var(--head);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted2);}
+.seccnt{font-size:10px;padding:2px 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,transform .2s;position:relative;}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px;}
+.card.c::before{background:var(--red);}
+.card.h::before{background:var(--orange);}
+.card.m::before{background:var(--yellow);}
+.card:hover{border-color:var(--border2);transform:translateX(2px);}
+.card.done-card{opacity:.4;}
+.card.done-card .ctitle{text-decoration:line-through;color:var(--muted);}
+.hidden{display:none!important;}
+
+.ch{padding:16px 18px 14px 22px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;user-select:none;}
+.cbox{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);flex-shrink:0;margin-top:2px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--bg3);font-weight:700;}
+.cbox:hover{border-color:var(--green);}
+.cbox.ticked{background:var(--green);border-color:var(--green);color:#000;}
+.cmeta{flex:1;}
+.ctop{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.cid{font-size:10px;color:var(--muted);letter-spacing:1px;}
+.pbadge{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;padding:2px 7px;border-radius:4px;font-weight:700;}
+.pc{background:rgba(255,59,59,.14);color:var(--red);border:1px solid rgba(255,59,59,.28);}
+.ph{background:rgba(255,140,0,.14);color:var(--orange);border:1px solid rgba(255,140,0,.28);}
+.pm{background:rgba(245,200,66,.1);color:var(--yellow);border:1px solid rgba(245,200,66,.22);}
+.ftag{font-size:10px;color:var(--cyan);background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.16);padding:2px 7px;border-radius:4px;}
+.ftag.exists{color:#a8c4e0;background:rgba(168,196,224,.06);border-color:rgba(168,196,224,.14);}
+.ctitle{font-family:var(--head);font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4;}
+.cdesc{font-size:12px;color:var(--muted2);line-height:1.6;}
+.ctog{color:var(--muted);font-size:15px;flex-shrink:0;transition:transform .3s;margin-top:3px;}
+.ctog.open{transform:rotate(180deg);}
+
+.cbody{display:none;border-top:1px solid var(--border);background:var(--bg3);}
+.cbody.open{display:block;}
+.cbin{padding:18px 22px;}
+
+.done-box{background:rgba(0,232,122,.04);border:1px solid rgba(0,232,122,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#6ee7b7;line-height:1.8;}
+.done-box strong{color:var(--green);}
+.warn-box{background:rgba(255,140,0,.04);border:1px solid rgba(255,140,0,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffcc80;line-height:1.8;}
+.warn-box strong{color:var(--orange);}
+.bug-box{background:rgba(255,59,59,.04);border:1px solid rgba(255,59,59,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffaaaa;line-height:1.8;}
+.bug-box strong{color:var(--red);}
+
+.todos{list-style:none;margin-bottom:18px;}
+.ti{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted2);align-items:flex-start;}
+.ti:last-child{border-bottom:none;}
+.arr{color:var(--red);flex-shrink:0;margin-top:1px;font-style:normal;}
+.arr.ok{color:var(--green);}
+.arr.w{color:var(--orange);}
+
+.csnip{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:13px 16px;font-size:11.5px;color:#a8c4e0;overflow-x:auto;margin:10px 0;line-height:1.9;}
+.csnip .k{color:#79b8ff;} .csnip .s{color:#9ecbff;} .csnip .c{color:#3d4f5e;font-style:italic;}
+.csnip .bad{color:var(--red);} .csnip .good{color:var(--green);}
+
+.psec{margin-top:18px;border:1px solid rgba(0,212,255,.18);border-radius:10px;overflow:hidden;}
+.phead{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,212,255,.05);border-bottom:1px solid rgba(0,212,255,.13);}
+.plabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);font-weight:700;display:flex;align-items:center;gap:6px;}
+.plabel::before{content:'⌘';}
+.copybtn{display:flex;align-items:center;gap:5px;padding:5px 14px;background:var(--cyan);color:#000;border:none;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.copybtn:hover{background:#fff;transform:scale(1.03);}
+.copybtn.ok{background:var(--green);}
+.ptext{padding:14px 16px;font-size:11.5px;color:#a8c4e0;line-height:1.95;white-space:pre-wrap;word-break:break-word;background:var(--bg);max-height:400px;overflow-y:auto;}
+.ptext::-webkit-scrollbar{width:3px;}
+.ptext::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.done-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.done-item{background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:12px 16px;}
+.done-item-title{color:var(--green);font-size:10px;margin-bottom:5px;}
+.done-item-desc{font-size:11px;color:var(--muted2);}
+
+.pbar-wrap{position:fixed;bottom:0;left:0;right:0;background:rgba(3,5,10,.96);border-top:1px solid var(--border2);backdrop-filter:blur(20px);padding:11px 24px;display:flex;align-items:center;gap:18px;z-index:100;}
+.pbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);white-space:nowrap;}
+.pbbar{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.pbfill{height:100%;background:linear-gradient(90deg,var(--red),var(--orange),var(--green));border-radius:2px;width:0%;transition:width .7s ease;}
+.pbpct{font-family:var(--head);font-size:12px;color:var(--text);white-space:nowrap;min-width:48px;}
+.pbcnt{font-size:10px;color:var(--muted2);white-space:nowrap;}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+@media(max-width:640px){h1{font-size:24px;}.stats{width:100%;}.done-grid{grid-template-columns:1fr;}.diag-label{min-width:120px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+<div class="hrow">
+<div>
+<div class="logo">Loot<span>ly</span> — Cursor Task Board <span>v4</span></div>
+<h1>Dijagnoza <em>živih bugova</em><br>+ šta još nedostaje</h1>
+<p class="hsub">Analiza <strong>bugsfixed.zip</strong> — šta je stvarno pokvareno, zašto, i tačni promptovi za Cursor. Redosled je bitan: idi od vrha ka dnu.</p>
+</div>
+<div class="stats">
+<div class="sbox"><span class="sn r" id="cnt-c">3</span><span class="sl">Kritično</span></div>
+<div class="sbox"><span class="sn o" id="cnt-h">3</span><span class="sl">Visoko</span></div>
+<div class="sbox"><span class="sn y" id="cnt-m">2</span><span class="sl">Srednje</span></div>
+<div class="sbox"><span class="sn g" id="cnt-done">0</span><span class="sl">Gotovo</span></div>
+</div>
+</div>
+</header>
+
+<!-- DIJAGNOZA PRIJAVLJENIH PROBLEMA -->
+<div class="diag">
+<div class="diag-title">Dijagnoza tvojih 3 prijavljenih problema</div>
+<div class="diag-row">
+<span class="diag-label">🔴 Instagram validacija ne radi</span>
+<span class="diag-val">Nema <code>.env</code> fajla u projektu — samo <code>.env.example</code>. Server čita <code>SCRAPER_SANDBOX=false</code> (default) i pokušava pravi Puppeteer scrape na lokalu. Puppeteer pada jer Instagram blokira headless browsere. Rešenje: kreirati <code>.env</code> sa <code>SCRAPER_SANDBOX=true</code>.</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">🔴 Too many requests — slow down</span>
+<span class="diag-val"><code>authLimiter</code> je 10 req / 10 min, bez bypass-a za dev. Kad testiraš (registruješ → greška → pokušaš opet → login → logout → login) — za 5-6 pokušaja dostigneš limit. Rešenje: dodati <code>skip</code> funkciju koja preskače limit kad <code>NODE_ENV !== 'production'</code>.</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">🟡 Draw animacija — postoji ali ima bug</span>
+<span class="diag-val">GSAP drum roll radi. Problem: <code>&lt;p id="winner-banner"&gt;</code> element je uvek prisutan i ima <code>animate-pulse</code> — stalno blinka čak i kad nema pobednika. GSAP <code>fromTo('#winner-banner')</code> animira taj element ali on nije poseban "banner" — samo statusLine tekst. Vizuelno izgleda čudno.</span>
+</div>
+</div>
+
+<!-- FILTER -->
+<div class="fbar">
+<span class="flabel">Filter:</span>
+<button class="fbtn on oc" onclick="doFilter('all',this)">Sve</button>
+<button class="fbtn" onclick="doFilter('c',this)">🔴 Kritično</button>
+<button class="fbtn" onclick="doFilter('h',this)">🟠 Visoko</button>
+<button class="fbtn" onclick="doFilter('m',this)">🟡 Srednje</button>
+<button class="fbtn" onclick="doFilter('done',this)">✅ Gotovo</button>
+</div>
+
+<!-- ══════════════ CRITICAL ══════════════ -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--red);font-size:15px">●</span>
+<span class="sectxt">Kritično — Radi odmah</span>
+<span class="seccnt" id="sc-c">3 taskova</span>
+</div>
+
+<!-- #01 -->
+<div class="card c" data-p="c" id="t01">
+<div class="ch" onclick="tog('t01')">
+<div class="cbox" onclick="tick(event,'t01')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#01</span>
+<span class="pbadge pc">KRITIČNO</span>
+<span class="ftag">.env → kreirati ručno</span>
+<span class="ftag exists">server.ts</span>
+</div>
+<div class="ctitle">Nema .env fajla → Instagram validacija pada, server koristi defaults</div>
+<div class="cdesc">Bez .env fajla: SCRAPER_SANDBOX je false (pravi scrape pada), JWT_SECRET je default "dev-secret", DISABLE_IP_RATE_LIMIT je false. Sve ovo uzrokuje bugove u dev-u.</div>
+</div>
+<div class="ctog" id="tog-t01">▾</div>
+</div>
+<div class="cbody" id="b-t01">
+<div class="cbin">
+<div class="bug-box">
+<strong>Uzrok:</strong> <code>.env</code> je u <code>.gitignore</code> pa se ne commit-uje — moraš ga kreirati ručno svaki put na novoj mašini.<br>
+<strong>Šta se dešava bez njega:</strong> <code>SCRAPER_SANDBOX</code> čita se kao <code>undefined</code>, string komparacija <code>=== 'true'</code> vraća <code>false</code> → server pokušava Puppeteer → Instagram blokira → validacija pada sa "Code not found".
+</div>
+<div class="csnip"><span class="c"># Kreiraj fajl: .env (u root projekta, pored package.json)</span>
+<span class="c"># NE commitovati ovaj fajl!</span>
+
+<span class="good">PORT=3000
+JWT_SECRET=lootly-dev-local-secret-replace-in-prod-32chars
+SCRAPER_SANDBOX=true
+DISABLE_IP_RATE_LIMIT=true
+MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY=999
+BASE_URL=http://localhost:3000
+NODE_ENV=development</span>
+
+<span class="c"># Ostaviti prazno u dev (nije potrebno):</span>
+<span class="c"># REDIS_URL=</span>
+<span class="c"># RAPIDAPI_KEY=</span>
+<span class="c"># RESEND_API_KEY=</span></div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Kreirati <code>.env</code> fajl u root direktorijumu projekta (videti sadržaj iznad)</span></li>
+<li class="ti"><i class="arr">→</i><span>Restartovati server: <code>npm run dev</code></span></li>
+<li class="ti"><i class="arr ok">✓</i><span>Sandbox mode vraća success=true odmah, ne pokušava Puppeteer</span></li>
+<li class="ti"><i class="arr ok">✓</i><span>Instagram validacija će "proći" u dev-u — idealno za testiranje</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p01')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p01">Create a .env file for local development. This is the root cause of the Instagram validation failure and other dev issues.
+
+In the project root (same folder as package.json), create a file named exactly ".env" with this content:
+
+PORT=3000
+JWT_SECRET=lootly-dev-local-secret-replace-in-production-must-be-32-chars
+SCRAPER_SANDBOX=true
+DISABLE_IP_RATE_LIMIT=true
+MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY=999
+BASE_URL=http://localhost:3000
+NODE_ENV=development
+
+Also verify that .gitignore contains ".env" (not ".env.example") so this file is never committed.
+
+After creating the file, restart the dev server with: npm run dev
+
+Then test Instagram verification — with SCRAPER_SANDBOX=true, the scraper immediately returns success without actually hitting Instagram, which is correct behavior for local development.
+
+Do not modify any TypeScript files for this task.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #02 -->
+<div class="card c" data-p="c" id="t02">
+<div class="ch" onclick="tog('t02')">
+<div class="cbox" onclick="tick(event,'t02')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#02</span>
+<span class="pbadge pc">KRITIČNO</span>
+<span class="ftag exists">server.ts — linija ~112</span>
+</div>
+<div class="ctitle">authLimiter udara čak i na lokalu — 10 pokušaja/10min bez dev bypass-a</div>
+<div class="cdesc">authLimiter nema skip() funkciju. apiLimiter ima skip za NODE_ENV==='test' ali ne za development. U dev-u testiraš 5-6 puta i dobijaš 429. Mora se dodati bypass za localhost.</div>
+</div>
+<div class="ctog" id="tog-t02">▾</div>
+</div>
+<div class="cbody" id="b-t02">
+<div class="cbin">
+<div class="bug-box">
+<strong>Tačna lokacija:</strong> <code>server.ts</code>, funkcija <code>startServer()</code>, oko linije 112.<br>
+<strong>Trenutni kod:</strong>
+</div>
+<div class="csnip"><span class="bad">const authLimiter = rateLimit({
+	windowMs: 10 * 60 * 1000,
+	max: 10,
+	message: { error: 'Too many auth attempts. Try again in 10 minutes.' },
+});</span>
+
+<span class="c">// Treba dodati skip funkciju:</span>
+<span class="good">const authLimiter = rateLimit({
+	windowMs: 10 * 60 * 1000,
+	max: 10,
+	message: { error: 'Too many auth attempts. Try again in 10 minutes.' },
+	skip: () => process.env.NODE_ENV !== 'production',
+});</span>
+
+<span class="c">// I za apiLimiter, proširiti skip uslov:</span>
+<span class="good">skip: () => process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development',</span></div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U <code>authLimiter</code>: dodati <code>skip: () => process.env.NODE_ENV !== 'production'</code></span></li>
+<li class="ti"><i class="arr">→</i><span>U <code>apiLimiter</code>: promeniti skip uslov da uključi i <code>'development'</code></span></li>
+<li class="ti"><i class="arr w">⚠</i><span>Ovo radi samo ako imaš <code>NODE_ENV=development</code> u <code>.env</code> (task #01)</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p02')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p02">Fix the rate limiter in server.ts to bypass limits in local development. The "Too many requests — slow down" error during testing is caused by authLimiter having no dev bypass.
+
+EXISTING FILE: server.ts
+Inside the startServer() function, find the authLimiter definition (around line 112):
+
+FIND this exact block:
+const authLimiter = rateLimit({
+	windowMs: 10 * 60 * 1000,
+	max: 10,
+	message: { error: 'Too many auth attempts. Try again in 10 minutes.' },
+});
+
+REPLACE WITH:
+const authLimiter = rateLimit({
+	windowMs: 10 * 60 * 1000,
+	max: 10,
+	message: { error: 'Too many auth attempts. Try again in 10 minutes.' },
+	skip: () => process.env.NODE_ENV !== 'production',
+});
+
+Also find the apiLimiter definition (around line 103):
+
+FIND:
+skip: () => process.env.NODE_ENV === 'test',
+
+REPLACE WITH:
+skip: () => process.env.NODE_ENV !== 'production',
+
+That is all. Two one-line changes. Do not touch any other rate limiting logic.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #03 -->
+<div class="card c" data-p="c" id="t03">
+<div class="ch" onclick="tog('t03')">
+<div class="cbox" onclick="tick(event,'t03')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#03</span>
+<span class="pbadge pc">KRITIČNO</span>
+<span class="ftag exists">src/pages/DrawPage.tsx</span>
+</div>
+<div class="ctitle">Draw stranica — animate-pulse blinka stalno, winner-banner GSAP animira pogrešan element</div>
+<div class="cdesc">statusLine p tag ima animate-pulse konstantno — blinka tokom celog draw-a čak i kad je stage completed. Isto, id="winner-banner" je na statusLine elementu koji uvek postoji, pa GSAP fromTo animira tekst koji već vidimo umesto posebnog winner reveal.</div>
+</div>
+<div class="ctog" id="tog-t03">▾</div>
+</div>
+<div class="cbody" id="b-t03">
+<div class="cbin">
+<div class="bug-box">
+<strong>Bug 1:</strong> <code>animate-pulse</code> je stalno aktivan na statusLine — treba samo dok je draw u toku (ne na 'completed', 'error', 'waiting').<br>
+<strong>Bug 2:</strong> <code>id="winner-banner"</code> i <code>id="seed-display"</code> su na istom elementu koji uvek postoji — GSAP ih animira ali efekt nije vidljiv jer su već rendered. Treba poseban div koji se prikazuje samo pri relevantnom stage-u.<br>
+<strong>Bug 3:</strong> <code>key={statusLine}</code> na p tagu — React unmount/remount na svaki statusLine update, GSAP gubi referencu.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>animate-pulse samo kad <code>stage === 'started' || stage === 'winner_drawn' || stage === 'verifying'</code></span></li>
+<li class="ti"><i class="arr">→</i><span>Ukloniti <code>key={statusLine}</code> sa p taga (sprečava React remount)</span></li>
+<li class="ti"><i class="arr">→</i><span>Dodati poseban <code>#winner-banner</code> div koji se prikazuje samo kad <code>stage === 'winner_verified' && passed</code></span></li>
+<li class="ti"><i class="arr">→</i><span>Seed display da bude poseban element vidljiv samo tokom <code>stage === 'seed_revealed'</code></span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p03')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p03">Fix 3 visual bugs in src/pages/DrawPage.tsx. Do not change any socket logic or state management.
+
+BUG 1 — animate-pulse runs constantly
+
+Find the statusLine paragraph element. It currently has className containing "animate-pulse" unconditionally.
+
+Change the className to conditionally apply animate-pulse only during active drawing stages:
+
+FIND (approximately):
+<p
+id="winner-banner"
+key={statusLine}
+className="text-lg font-semibold text-white animate-pulse"
+>
+{statusLine}
+</p>
+
+REPLACE WITH:
+<p
+className={`text-lg font-semibold text-white transition-all ${
+	stage === 'started' || stage === 'winner_drawn' || stage === 'verifying' || stage === 'seed_revealed'
+	? 'animate-pulse'
+	: ''
+}`}
+>
+{statusLine}
+</p>
+
+Note: remove id="winner-banner" and key={statusLine} from this element. The key prop was causing React to remount the element on every status update, which breaks GSAP animations.
+
+BUG 2 — winner-banner GSAP animates wrong element
+
+Add a new dedicated winner banner element that is only shown when a winner is verified and passed. Add this AFTER the statusLine paragraph:
+
+{stage === 'winner_verified' && winners.length > 0 && (
+	<div
+	id="winner-banner"
+	className="mt-4 py-3 px-6 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 font-bold text-lg"
+	>
+	🏆 Winner confirmed!
+	</div>
+)}
+
+BUG 3 — seed-display GSAP animates wrong element
+
+The detailLine paragraph currently gets id="seed-display" only during seed_revealed stage. This conditional id is fragile. Instead, wrap the detail line in a stable container:
+
+FIND:
+{detailLine && (
+	<p
+	id={stage === 'seed_revealed' ? 'seed-display' : undefined}
+	className="text-xs text-slate-400 mt-3 font-mono leading-relaxed break-words"
+	>
+	{detailLine}
+	</p>
+)}
+
+REPLACE WITH:
+{detailLine && (
+	<div id="seed-display" className="mt-3">
+	<p className="text-xs text-slate-400 font-mono leading-relaxed break-words">
+	{detailLine}
+	</p>
+	</div>
+)}
+
+Now seed-display always exists when detailLine is set, so GSAP can animate it regardless of stage.
+
+Do not change any socket event handlers, state variables, or the runDrumRoll function.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ══════════════ HIGH ══════════════ -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--orange);font-size:15px">●</span>
+<span class="sectxt">Visoko — Pre nego što pozoveš nekog da testira</span>
+<span class="seccnt" id="sc-h">3 taskova</span>
+</div>
+
+<!-- #04 -->
+<div class="card h" data-p="h" id="t04">
+<div class="ch" onclick="tog('t04')">
+<div class="cbox" onclick="tick(event,'t04')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#04</span>
+<span class="pbadge ph">VISOKO</span>
+<span class="ftag exists">src/components/GiveawayPage.tsx</span>
+</div>
+<div class="ctitle">Verify UX je konfuzna — prikazuje "BullMQ" i "Puppeteer" tekst krajnjem korisniku</div>
+<div class="cdesc">startScrapeVerification() prikazuje "Job queued in BullMQ — waiting for Puppeteer worker..." kao status. Korisnik ne treba da zna šta je BullMQ. Treba human-readable progress poruke.</div>
+</div>
+<div class="ctog" id="tog-t04">▾</div>
+</div>
+<div class="cbody" id="b-t04">
+<div class="cbin">
+<div class="warn-box">
+<strong>Trenutni UI tekst koji vidi korisnik:</strong><br>
+• "Instantiating headless scraper client threads..."<br>
+• "Job queued in BullMQ — waiting for Puppeteer worker..."<br><br>
+<strong>Treba da bude:</strong><br>
+• "Checking your Instagram profile..."<br>
+• "Looking for verification code in your bio..."<br>
+• "Almost done..."
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Zameniti sve tehničke poruke human-readable alternativama</span></li>
+<li class="ti"><i class="arr">→</i><span>Dodati animated dots ili spinner tokom čekanja</span></li>
+<li class="ti"><i class="arr">→</i><span>Na grešci: prikazati jasan "Šta da uradim" guide umesto tehničke greške</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p04')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p04">Fix the verification UX in src/components/GiveawayPage.tsx to show human-readable messages instead of technical infrastructure terms.
+
+EXISTING FILE: src/components/GiveawayPage.tsx
+The startScrapeVerification() function currently sets verifyMessage to technical strings like "Instantiating headless scraper client threads..." and "Job queued in BullMQ — waiting for Puppeteer worker..."
+
+WHAT TO DO:
+
+1. In the startScrapeVerification() function, replace all setVerifyMessage() calls with user-friendly text:
+
+FIND:
+setVerifyMessage('Instantiating headless scraper client threads...');
+
+setVerifyStep(1);
+setVerifyMessage('Job queued in BullMQ — waiting for Puppeteer worker...');
+
+REPLACE WITH:
+setVerifyMessage('Checking your Instagram profile…');
+
+setVerifyStep(2);
+setVerifyMessage('Looking for your verification code in bio…');
+
+2. In the same function, after the await onVerifyRequest() call returns, if res?.stage exists, instead of showing it raw, map it to a friendly message:
+
+FIND:
+if (res?.stage) {
+	setVerifyMessage(res.stage);
+	setVerifyStep(5);
+}
+
+REPLACE WITH:
+setVerifyMessage('Finalizing verification…');
+setVerifyStep(5);
+
+3. Find where the error message is set on failure. Change the fallback error text from:
+'Code Signature not found in your bios signature! Please confirm code is correctly formatted and update bio settings to public.'
+
+TO:
+'Verification code not found in your Instagram bio. Make sure: (1) Your profile is public, (2) The code is copied exactly as shown, (3) Wait 1-2 minutes after saving your bio, then try again.'
+
+4. In the JSX where verifyMessage is displayed (look for {verifyMessage} in the render), add animated dots after the message when isVerifying is true:
+
+FIND the element displaying verifyMessage and update it to:
+<p className="text-sm text-slate-300">
+{verifyMessage}{isVerifying ? <span className="animate-pulse">...</span> : ''}
+</p>
+
+Do not change any API calls, state logic, or the overall flow.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #05 -->
+<div class="card h" data-p="h" id="t05">
+<div class="ch" onclick="tog('t05')">
+<div class="cbox" onclick="tick(event,'t05')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#05</span>
+<span class="pbadge ph">VISOKO</span>
+<span class="ftag exists">server.ts</span>
+<span class="ftag exists">server/db/repository.ts</span>
+</div>
+<div class="ctitle">Verifikacioni kod istekne za 30min ali ne postoji UI da se zatraži novi kod</div>
+<div class="cdesc">server.ts proverava verificationExpiresAt i odbija verify nakon isteka. Participant dobija grešku "Verification code expired" ali u UI ne postoji "Request new code" dugme — korisnik mora da se re-registruje iznova.</div>
+</div>
+<div class="ctog" id="tog-t05">▾</div>
+</div>
+<div class="cbody" id="b-t05">
+<div class="cbin">
+<div class="warn-box">
+<strong>Flow problem:</strong> Korisnik se registruje → dobija kod → čeka 31+ minuta (ili zatvori tab) → verifikacija pada sa "expired" → nema načina da dobije novi kod bez ponovne registracije sa istim username-om, što server odbija jer participant već postoji.<br>
+<strong>Treba:</strong> Endpoint za refresh koda + dugme u UI.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Dodati <code>POST /api/participants/refresh-code</code> endpoint koji generiše novi kod za existing participant</span></li>
+<li class="ti"><i class="arr">→</i><span>U GiveawayPage: kad verify vrati "expired" grešku → prikazati "Refresh Code" dugme</span></li>
+<li class="ti"><i class="arr ok">✓</i><span>join-request endpoint već vraća participantId — sačuvati ga u state</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p05')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p05">Add a "refresh verification code" feature. Users get stuck when their code expires and can't re-verify without re-registering.
+
+EXISTING FILES:
+- server.ts — has POST /api/participants/join-request which creates participants with verificationCode, verificationExpiresAt, verificationAttempts. Has POST /api/participants/verify-bio.
+- server/db/repository.ts — has readDatabase(), writeDatabase()
+- src/components/GiveawayPage.tsx — has participantId state, verificationCode state, startScrapeVerification() function
+
+WHAT TO DO:
+
+Step 1 — Add new endpoint to server.ts (add after the verify-bio endpoint):
+
+app.post('/api/participants/refresh-code', async (req, res) => {
+	const { participantId } = req.body;
+	if (!participantId) return res.status(400).json({ error: 'participantId required' });
+	
+	const dbData = await readDatabase();
+	const idx = dbData.participants.findIndex(p => p.id === participantId);
+	if (idx === -1) return res.status(404).json({ error: 'Participant not found.' });
+	
+	const participant = dbData.participants[idx];
+	if (participant.verifiedAt) {
+		return res.status(400).json({ error: 'Already verified — no need to refresh.' });
+	}
+	
+	// Generate fresh code
+	const newCode = generateVerificationCode();
+	dbData.participants[idx] = {
+		...participant,
+		verificationCode: newCode,
+		verificationExpiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+		 verificationAttempts: 0,
+	};
+	await writeDatabase(dbData);
+	
+	res.json({ verificationCode: newCode, verificationCodeNum: newCode });
+});
+
+Step 2 — In src/components/GiveawayPage.tsx, add a refreshCode function:
+
+const refreshCode = async () => {
+	if (!participantId) return;
+	setErrorMessage('');
+	const res = await fetch('/api/participants/refresh-code', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ participantId }),
+	});
+	const data = await res.json();
+	if (data.verificationCodeNum) {
+		setVerificationCode(data.verificationCodeNum);
+		setErrorMessage('');
+	} else {
+		setErrorMessage(data.error || 'Failed to refresh code.');
+	}
+};
+
+Step 3 — In the JSX where the error message is displayed (find {errorMessage && ...}), add a conditional "Refresh Code" button when the error mentions "expired" or "attempts":
+
+{errorMessage && (
+	<div>
+	<p className="text-red-400 text-xs mt-2">{errorMessage}</p>
+	{(errorMessage.toLowerCase().includes('expired') || errorMessage.toLowerCase().includes('attempt')) && participantId && (
+		<button
+		type="button"
+		onClick={refreshCode}
+		className="mt-2 text-xs text-amber-400 hover:text-amber-300 underline cursor-pointer"
+		>
+		🔄 Get a new verification code
+		</button>
+	)}
+	</div>
+)}
+
+Do not change the join flow, only add the refresh capability.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #06 -->
+<div class="card h" data-p="h" id="t06">
+<div class="ch" onclick="tog('t06')">
+<div class="cbox" onclick="tick(event,'t06')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#06</span>
+<span class="pbadge ph">VISOKO</span>
+<span class="ftag exists">src/App.tsx</span>
+<span class="ftag">5sec polling → treba smanjiti</span>
+</div>
+<div class="ctitle">fetchGlobalState polling je svakih 5 sekundi — pravi 12 API poziva/min čak i kad nema promena</div>
+<div class="cdesc">App.tsx ima setInterval(fetchGlobalState, 5000) koji radi uvek. Na draw stranici to je OK, ali na landing page-u ili dashboard-u koji se ne menjaju — nepotrebno opterećuje server. Na lokalu nećeš primetiti, ali pri testiranju sa više tabova ili sporijom vezom — videćeš lag.</div>
+</div>
+<div class="ctog" id="tog-t06">▾</div>
+</div>
+<div class="cbody" id="b-t06">
+<div class="cbin">
+<div class="warn-box">
+<strong>Postoji problem i sa invalidacijom:</strong> Ako si na draw stranici i draw počne, čekaš do 5sec da UI dobije update (polling kasni za socket-om). Socket eventi su instant — ali App.tsx state (participants lista, giveaway status) se refreshuje samo na polling intervalu.<br>
+<strong>Rešenje:</strong> Povećati polling na 15-30 sec za non-draw rute, a na draw ruti osloniti se na socket (fetchGlobalState odmah posle draw:completed).
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Polling interval: 5000ms → 15000ms za non-draw rute</span></li>
+<li class="ti"><i class="arr">→</i><span>Na draw rutama (<code>currentRoute.includes('/draw')</code>): ostaviti 5000ms ili manji</span></li>
+<li class="ti"><i class="arr">→</i><span>Pozvati <code>fetchGlobalState()</code> odmah pri route promeni (već postoji u dependency array)</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p06')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p06">Reduce unnecessary polling in src/App.tsx. The current 5-second interval runs everywhere and creates excessive API traffic.
+
+EXISTING FILE: src/App.tsx
+Find the useEffect that sets up polling (around the fetchGlobalState function):
+
+FIND this exact block (approximately):
+useEffect(() => {
+	fetchGlobalState();
+	const activePoll = setInterval(fetchGlobalState, 5000);
+	return () => clearInterval(activePoll);
+}, [currentRoute, host?.id]);
+
+REPLACE WITH:
+useEffect(() => {
+	fetchGlobalState();
+	// Use faster polling on draw routes, slower elsewhere
+	const isDrawRoute = currentRoute.includes('/draw') || currentRoute === '/live-draw';
+const pollInterval = isDrawRoute ? 5000 : 20000;
+const activePoll = setInterval(fetchGlobalState, pollInterval);
+return () => clearInterval(activePoll);
+}, [currentRoute, host?.id]);
+
+That is the only change needed. Do not touch fetchGlobalState() itself or any other useEffect.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ══════════════ MEDIUM ══════════════ -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--yellow);font-size:15px">●</span>
+<span class="sectxt">Srednje — UX polishing</span>
+<span class="seccnt" id="sc-m">2 taskova</span>
+</div>
+
+<!-- #07 -->
+<div class="card m" data-p="m" id="t07">
+<div class="ch" onclick="tog('t07')">
+<div class="cbox" onclick="tick(event,'t07')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#07</span>
+<span class="pbadge pm">SREDNJE</span>
+<span class="ftag exists">src/components/AuthModal.tsx</span>
+</div>
+<div class="ctitle">AuthModal ne resetuje grešku kad korisnik promeni tab (login↔register) niti pri prvom otvaranju</div>
+<div class="cdesc">Ako login ne uspe sa greškom, pa korisnik klikne "Register" tab — greška ostaje vidljiva. Isto, ako modal bio otvoren sa greškom, zatvori se i ponovo otvori — stara greška ostaje.</div>
+</div>
+<div class="ctog" id="tog-t07">▾</div>
+</div>
+<div class="cbody" id="b-t07">
+<div class="cbin">
+<div class="warn-box">
+<strong>Trenutno:</strong> Tab switch triggeruje <code>setAuthMode()</code> i <code>setAuthError('')</code> — ispravno.<br>
+<strong>Problem:</strong> Kad se modal zatvori i ponovo otvori (nova sesija), email/password state ostaje iz prethodne sesije. Korisnik vidi stare vrednosti u formi.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Resetovati email, username, password, authError kada se modal otvori (<code>open</code> promena na true)</span></li>
+<li class="ti"><i class="arr ok">✓</i><span>authMode reset već postoji u useEffect([open, initialMode])</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p07')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p07">Fix AuthModal state reset in src/components/AuthModal.tsx. When the modal opens, stale form values from the previous session remain.
+
+EXISTING FILE: src/components/AuthModal.tsx
+Find the existing useEffect that resets authMode:
+
+FIND:
+useEffect(() => {
+	if (open) setAuthMode(initialMode);
+}, [open, initialMode]);
+
+REPLACE WITH:
+useEffect(() => {
+	if (open) {
+		setAuthMode(initialMode);
+		setAuthError('');
+		setEmail('');
+		setPassword('');
+		setUsername('');
+	}
+}, [open, initialMode]);
+
+That is the only change. One useEffect, add 4 reset lines.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #08 -->
+<div class="card m" data-p="m" id="t08">
+<div class="ch" onclick="tog('t08')">
+<div class="cbox" onclick="tick(event,'t08')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#08</span>
+<span class="pbadge pm">SREDNJE</span>
+<span class="ftag exists">server.ts</span>
+<span class="ftag exists">src/App.tsx</span>
+</div>
+<div class="ctitle">Nema error handling kada server.ts pukne tokom starta — korisnik vidi praznu stranicu bez objašnjenja</div>
+<div class="cdesc">Ako server.ts pukne pri startu (npm run dev) zbog TypeScript greške ili missing module, frontend dobija connection refused ali ne prikazuje korisnu grešku. Posebno bitno dok razvijamo i menjamo server.</div>
+</div>
+<div class="ctog" id="tog-t08">▾</div>
+</div>
+<div class="cbody" id="b-t08">
+<div class="cbin">
+<div class="warn-box">
+<strong>Simptom:</strong> npm run dev pokreće tsx server.ts + vite. Ako server pada, Vite proxy dobija ECONNREFUSED i vraća 502. App.tsx fetchGlobalState prima grešku ali je tiho guta u catch bloku.<br>
+<strong>Treba:</strong> Prikazati vidljiv banner "Server offline" kad API pozivi konsekventno fail-uju.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U App.tsx <code>fetchGlobalState()</code> catch bloku: setovati <code>serverOffline</code> state</span></li>
+<li class="ti"><i class="arr">→</i><span>Prikazati banner na vrhu stranice: "⚠ Backend offline — run npm run dev"</span></li>
+<li class="ti"><i class="arr">→</i><span>Na uspešnom fetchu: resetovati serverOffline na false</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p08')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p08">Add a visible "server offline" banner to App.tsx for when the backend isn't running.
+
+EXISTING FILE: src/App.tsx
+The fetchGlobalState() function has a try/catch that currently only console.errors on failure.
+
+WHAT TO DO:
+
+1. Add a new state variable near the top of the App component (with the other useState declarations):
+const [serverOffline, setServerOffline] = useState(false);
+
+2. In fetchGlobalState(), in the try block, after the first successful fetch line (after gwRes.ok or after setGiveaways), add:
+setServerOffline(false);
+
+3. In the catch block of fetchGlobalState(), add:
+setServerOffline(true);
+
+The catch block should look like:
+} catch (err) {
+	console.error('[Lootly State Engine] Failed to sync data with server:', err);
+	setServerOffline(true);
+} finally {
+	
+	4. In the JSX return, add a banner directly after the opening <div> (before the <header>):
+	
+	{serverOffline && (
+		<div className="fixed top-0 left-0 right-0 z-[200] bg-red-950 border-b border-red-800 py-2 px-4 text-center text-xs text-red-300 font-mono flex items-center justify-center gap-2">
+		<span className="text-red-400">⚠</span>
+		Backend server is offline — run <code className="bg-red-900 px-1.5 py-0.5 rounded text-red-200">npm run dev</code> in your terminal
+		</div>
+	)}
+	
+	5. Also add a top-padding when the banner is shown so it doesn't overlap the header:
+	On the <header> element, add conditional padding: className={`... ${serverOffline ? 'mt-8' : ''}`}
+	
+	Do not change any other logic.</div>
+	</div>
+	</div>
+	</div>
+	</div>
+	</div>
+	
+	<!-- DONE SECTION -->
+	<div class="sec">
+	<div class="sectitle">
+	<span style="color:var(--green);font-size:15px">●</span>
+	<span class="sectxt">Potvrđeno gotovo u bugsfixed.zip</span>
+	</div>
+	<div class="done-grid">
+	<div class="done-item"><div class="done-item-title">✓ JWT Auth + requireAuth middleware</div><div class="done-item-desc">Sve zaštićene rute koriste requireAuth. Token je 7d. Login/register vraćaju token.</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Socket.io + GSAP draw animacija</div><div class="done-item-desc">Drum roll radi. confetti na win. stagger za winners listu. Sve draw:* evente obrađuje.</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Helmet + rate limiting</div><div class="done-item-desc">Globalni 100 req/15min. authLimiter 10/10min. Trust proxy. (bypass za dev — task #02)</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Follow verifikacija — scrapeFollowingList</div><div class="done-item-desc">Puppeteer + RapidAPI fallback. Sandbox mode preskače. Private profil = disqualify.</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Archive stranica + endpoint</div><div class="done-item-desc">GET /api/giveaway/:slug/archive. SHA256 verifikacija. Link iz DrawPage i HostDashboard.</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Email (Resend) + BullMQ fallback</div><div class="done-item-desc">sendWinnerEmail(). Inline processing kad nema Redisa. Graceful skip bez API ključa.</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Referral sistem + ticket weight</div><div class="done-item-desc">ticketCount, referralBonusTickets, ?ref= param, UI badge i info box u GiveawayPage.</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Freemium enforcement</div><div class="done-item-desc">Plan limit check na serveru. Progress bar u HostDashboard. Watermark badge.</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Verify Page + i18n sr/en</div><div class="done-item-desc">VerifyPage.tsx kompletna. 341-342 linija po jeziku. HowItWorksPage postoji.</div></div>
+	<div class="done-item"><div class="done-item-title">✓ Auth state bug fix + array guards</div><div class="done-item-desc">Default props [], Array.isArray() guard, onClose() double-call fixed, authFetch token direct read.</div></div>
+	</div>
+	</div>
+	
+	</div>
+	
+	<div class="pbar-wrap">
+	<span class="pbl">Napredak v4</span>
+	<div class="pbbar"><div class="pbfill" id="pbf"></div></div>
+	<span class="pbpct" id="pbp">0%</span>
+	<span class="pbcnt" id="pbc">0 / 8 završeno</span>
+	</div>
+	
+	<script>
+	const TOTAL = 8;
+	function tog(id){const b=document.getElementById('b-'+id);const t=document.getElementById('tog-'+id);if(!b)return;b.classList.toggle('open');t.classList.toggle('open');}
+	function tick(e,id){e.stopPropagation();const card=document.getElementById(id);const box=card.querySelector('.cbox');const on=box.classList.toggle('ticked');box.textContent=on?'✓':'';card.classList.toggle('done-card',on);save();updateBar();updateCounts();}
+	function cp(pid){const el=document.getElementById(pid);if(!el)return;const text=el.textContent.trim();const btns=document.querySelectorAll(`[onclick="cp('${pid}')"]`);navigator.clipboard.writeText(text).then(()=>{btns.forEach(b=>{b.textContent='✓ COPIED!';b.classList.add('ok');});setTimeout(()=>btns.forEach(b=>{b.textContent='⎘ COPY';b.classList.remove('ok');}),2200);}).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});}
+	function doFilter(type,btn){document.querySelectorAll('.fbtn').forEach(b=>{b.classList.remove('on','oo','oy','og','oc');});btn.classList.add('on');if(type==='all')btn.classList.add('oc');if(type==='h')btn.classList.add('oo');if(type==='m')btn.classList.add('oy');if(type==='done')btn.classList.add('og');document.querySelectorAll('.card').forEach(card=>{const p=card.dataset.p;const done=card.classList.contains('done-card');if(type==='all'){card.classList.remove('hidden');return;}if(type==='done'){card.classList.toggle('hidden',!done);return;}card.classList.toggle('hidden',p!==type);});}
+	function updateBar(){const done=document.querySelectorAll('.cbox.ticked').length;const pct=Math.round((done/TOTAL)*100);document.getElementById('pbf').style.width=pct+'%';document.getElementById('pbp').textContent=pct+'%';document.getElementById('pbc').textContent=done+' / '+TOTAL+' završeno';}
+	function updateCounts(){['c','h','m'].forEach(p=>{const cards=document.querySelectorAll(`.card[data-p="${p}"]`);const done=[...cards].filter(c=>c.classList.contains('done-card')).length;const el=document.getElementById('cnt-'+p);if(el)el.textContent=cards.length-done;});document.getElementById('cnt-done').textContent=document.querySelectorAll('.cbox.ticked').length;}
+	function save(){const s={};document.querySelectorAll('.card').forEach(c=>{s[c.id]=c.classList.contains('done-card');});try{localStorage.setItem('lootly_v4',JSON.stringify(s));}catch(e){}}
+	function load(){try{const s=JSON.parse(localStorage.getItem('lootly_v4')||'{}');Object.entries(s).forEach(([id,done])=>{if(!done)return;const card=document.getElementById(id);if(!card)return;const box=card.querySelector('.cbox');box.classList.add('ticked');box.textContent='✓';card.classList.add('done-card');});}catch(e){}updateBar();updateCounts();}
+	window.addEventListener('load',()=>{load();setTimeout(()=>{document.getElementById('pbf').style.transition='width .8s ease';},200);});
+	</script>
+	</body>
+	</html>
+
+	
+	
+	
