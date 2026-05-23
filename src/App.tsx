@@ -91,7 +91,7 @@ export default function App() {
       setLoading(true);
       const gwRes = await fetch('/api/giveaways');
       const gwData = await gwRes.json();
-      setGiveaways(gwData || []);
+      setGiveaways(Array.isArray(gwData) ? gwData : []);
 
       const routeParts = currentRoute.split('/').filter((p) => p.length > 0);
       const slugName = routeParts[0] === 'giveaway' ? routeParts[1] : null;
@@ -102,12 +102,12 @@ export default function App() {
       if (host?.id) {
         const partRes = await fetch(`/api/participants/for-host/${host.id}`);
         const partData = await partRes.json();
-        const allForHost = partData || [];
+        const allForHost = Array.isArray(partData) ? partData : [];
         if (giveawayMatch) {
           setParticipants(allForHost.filter((p: Participant) => p.giveawayId === giveawayMatch.id));
           const logRes = await fetch(`/api/verification/logs?giveawayId=${giveawayMatch.id}`);
           const logData = await logRes.json();
-          setGlobalLogs(logData || []);
+          setGlobalLogs(Array.isArray(logData) ? logData : []);
         } else {
           setParticipants(allForHost);
           setGlobalLogs([]);
@@ -115,10 +115,10 @@ export default function App() {
       } else if (giveawayMatch) {
         const partRes = await fetch(`/api/participants/by-giveaway/${giveawayMatch.id}`);
         const partData = await partRes.json();
-        setParticipants(partData || []);
+        setParticipants(Array.isArray(partData) ? partData : []);
         const logRes = await fetch(`/api/verification/logs?giveawayId=${giveawayMatch.id}`);
         const logData = await logRes.json();
-        setGlobalLogs(logData || []);
+        setGlobalLogs(Array.isArray(logData) ? logData : []);
       } else {
         setParticipants([]);
         setGlobalLogs([]);

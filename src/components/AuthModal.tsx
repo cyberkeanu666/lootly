@@ -56,7 +56,6 @@ export default function AuthModal({
       setPassword('');
       setEmail('');
       setUsername('');
-      onClose();
     }
   };
 

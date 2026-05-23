@@ -17,8 +17,8 @@ interface HostDashboardProps {
 
 export default function HostDashboard({
   host,
-  giveaways,
-  participants,
+  giveaways = [],
+  participants = [],
   onCreateGiveaway,
   onDeleteGiveaway,
   onSelectRoute,
@@ -42,6 +42,13 @@ export default function HostDashboard({
   const [winners, setWinners] = useState('1');
   const [refBonus, setRefBonus] = useState('1');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+  const openCreateModal = () => {
+    setErrorMessage('');
+    setShowUpgradePrompt(false);
+    setShowCreateModal(true);
+  };
 
   const parsedProfiles = useMemo(() => parseBulkProfiles(bulkProfilesText), [bulkProfilesText]);
 
@@ -93,6 +100,7 @@ export default function HostDashboard({
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setShowUpgradePrompt(false);
 
     const finalSlug = slug.trim() || slugifyTitle(title);
     if (!title.trim() || !prizeName.trim() || !finalSlug) {
@@ -130,7 +138,12 @@ export default function HostDashboard({
     });
 
     if (result && result.error) {
-      setErrorMessage(result.error);
+      const isLimitError = /limit|plan|upgrade|maximum/i.test(result.error);
+      if (isLimitError) {
+        setShowUpgradePrompt(true);
+      } else {
+        setErrorMessage(result.error);
+      }
     } else {
       setShowCreateModal(false);
       // Reset form
@@ -219,7 +232,7 @@ export default function HostDashboard({
           )}
 
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={openCreateModal}
             className="px-4 py-2 bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-200 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
             id="create_new_campaign_btn"
           >
@@ -227,6 +240,37 @@ export default function HostDashboard({
           </button>
         </div>
       </div>
+
+      {host.plan === 'free' && (
+        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-white">Free Plan Usage</span>
+            <button
+              type="button"
+              onClick={onUpgradeHost}
+              className="text-xs text-amber-400 hover:text-amber-300 font-bold cursor-pointer"
+            >
+              Upgrade to Pro →
+            </button>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(100, (myGiveaways.length / 3) * 100)}%` }}
+              />
+            </div>
+            <span className="text-xs text-slate-400 font-mono">
+              {myGiveaways.length} / 3 campaigns
+            </span>
+          </div>
+          {myGiveaways.length >= 3 && (
+            <p className="text-xs text-amber-400/90">
+              Campaign limit reached. Upgrade to Pro for unlimited campaigns.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Analytics Insight Row */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6" id="dashboard_analytics">
@@ -346,7 +390,7 @@ export default function HostDashboard({
             <Trophy className="h-10 w-10 text-slate-700 stroke-1" />
             <p className="font-sans text-sm">{t('dashboard.noCampaigns')}</p>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={openCreateModal}
               className="mt-2 bg-amber-500 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl hover:bg-amber-400 transition cursor-pointer"
             >
               {t('dashboard.addFirst')}
@@ -368,13 +412,20 @@ export default function HostDashboard({
 
                 <div className="flex flex-col gap-3 relative z-10 text-left">
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[9px] font-sans tracking-widest uppercase font-bold px-2 py-0.5 rounded-full border ${
-                      g.status === 'completed' 
-                        ? 'bg-slate-950 border-slate-800 text-slate-500' 
-                        : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    }`}>
-                      {g.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[9px] font-sans tracking-widest uppercase font-bold px-2 py-0.5 rounded-full border ${
+                        g.status === 'completed' 
+                          ? 'bg-slate-950 border-slate-800 text-slate-500' 
+                          : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                      }`}>
+                        {g.status}
+                      </span>
+                      {g.watermark && (
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                          FREE
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-400 font-sans">{g.id}</span>
                   </div>
 
@@ -407,6 +458,16 @@ export default function HostDashboard({
                       </span>
                     )}
                   </div>
+
+                  {g.status === 'completed' && (
+                    <button
+                      type="button"
+                      onClick={() => onSelectRoute(`/giveaway/${g.slug}/archive`)}
+                      className="text-xs text-amber-400 hover:text-amber-300 underline cursor-pointer text-left mt-1"
+                    >
+                      View Proof Archive →
+                    </button>
+                  )}
                 </div>
 
                 <div className="border-t border-slate-800/80 pt-4 mt-6 flex flex-wrap items-center justify-between gap-3 relative z-10">
@@ -460,7 +521,26 @@ export default function HostDashboard({
             <h4 className="text-lg font-bold text-white mb-2">{t('dashboard.createTitle')}</h4>
             <p className="text-xs text-slate-400 mb-6">{t('dashboard.createDesc')}</p>
             
-            {errorMessage && (
+            {showUpgradePrompt && (
+              <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-amber-400 shrink-0" />
+                  <p className="text-sm font-bold text-amber-300">Free plan limit reached</p>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Upgrade to Pro for unlimited campaigns, no watermark, and higher participant caps.
+                </p>
+                <button
+                  type="button"
+                  onClick={onUpgradeHost}
+                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 text-xs font-bold rounded-xl hover:from-amber-400 hover:to-amber-300 transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Crown className="h-4 w-4" /> Upgrade to Pro
+                </button>
+              </div>
+            )}
+
+            {errorMessage && !showUpgradePrompt && (
               <div className="mb-4 p-3 bg-red-950/20 border border-red-900/40 text-red-400 text-xs rounded-lg font-sans leading-relaxed">
                 {errorMessage}
               </div>

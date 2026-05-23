@@ -102,9 +102,9 @@ export async function authFetch(
   init: RequestInit = {}
 ): Promise<Response> {
   const headers = new Headers(init.headers);
-  const auth = getAuthHeaders();
-  if (auth.Authorization) {
-    headers.set('Authorization', auth.Authorization);
+  const token = getAuthToken();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
   if (
     init.body &&

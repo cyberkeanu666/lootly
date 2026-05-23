@@ -121,33 +121,45 @@ async function processScrapeJob(data: ScrapeJobData): Promise<void> {
 export async function enqueueBioScrapeJob(data: ScrapeJobData): Promise<string> {
   setJobStatus(data.jobId, {
     status: 'queued',
-    stage: 'Queued in BullMQ...',
+    stage: scrapeQueue ? 'Queued in BullMQ...' : 'Queued for inline processing...',
     participantId: data.participantId,
   });
 
-  if (scrapeQueue) {
-    await scrapeQueue.add('scrape-bio', data, {
-      jobId: data.jobId,
-      removeOnComplete: 100,
-      removeOnFail: 50,
-    });
-    return data.jobId;
+  if (!scrapeQueue) {
+    console.log('[ScrapeQueue] Inline mode — processing scrape directly');
+    setJobStatus(data.jobId, { status: 'active', stage: 'Processing inline (no Redis)...' });
+    try {
+      await processScrapeJob(data);
+    } catch (err) {
+      setJobStatus(data.jobId, {
+        status: 'failed',
+        message: err instanceof Error ? err.message : 'Scrape worker error',
+      });
+    }
+    return `inline-${Date.now()}`;
   }
 
-  setJobStatus(data.jobId, { status: 'active', stage: 'Processing inline (no Redis)...' });
-  try {
-    await processScrapeJob(data);
-  } catch (err) {
-    setJobStatus(data.jobId, {
-      status: 'failed',
-      message: err instanceof Error ? err.message : 'Scrape worker error',
-    });
-  }
+  await scrapeQueue.add('scrape-bio', data, {
+    jobId: data.jobId,
+    removeOnComplete: 100,
+    removeOnFail: 50,
+  });
   return data.jobId;
 }
 
 export async function startScrapeQueue(): Promise<void> {
-  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+  if (process.env.SCRAPER_SANDBOX === 'true') {
+    console.log('[ScrapeQueue] Sandbox mode — skipping Redis/BullMQ init');
+    return;
+  }
+
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    console.warn(
+      '[ScrapeQueue] REDIS_URL not set — BullMQ disabled. Set SCRAPER_SANDBOX=true for local dev.'
+    );
+    return;
+  }
 
   try {
     const connection = new Redis(redisUrl, { maxRetriesPerRequest: null });
@@ -174,10 +186,10 @@ export async function startScrapeQueue(): Promise<void> {
       }
     });
 
-    console.log('[Lootly BullMQ] Bio scrape queue connected:', redisUrl);
+    console.log('[ScrapeQueue] BullMQ queue started');
   } catch (err) {
     console.warn(
-      '[Lootly BullMQ] Redis unavailable — scrape jobs run inline. Set REDIS_URL for production queue.',
+      '[ScrapeQueue] Failed to connect to Redis — scrape queue disabled:',
       err instanceof Error ? err.message : err
     );
   }

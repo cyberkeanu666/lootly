@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import confetti from 'canvas-confetti';
+import { gsap } from 'gsap';
 import { Giveaway } from '../data';
 import { authFetch, hasAuthSession, loadStoredHost } from '../utils/authHeaders';
 import { Play, Trophy, Loader2 } from 'lucide-react';
@@ -21,6 +22,32 @@ type DrawStage =
   | 'completed'
   | 'error';
 
+const FAKE_DRUM_NAMES = [
+  'user_8821',
+  'the.real.alex',
+  'gamer99',
+  'photo.lena',
+  'crypto_kid',
+  'daily.vibes',
+  'traveler_mike',
+  'style.by.jo',
+  'nightowl_42',
+  'fitness.queen',
+  'musicfan_x',
+  'chef.marco',
+  'urban.skater',
+  'bookworm_ella',
+  'sunset.chaser',
+  'pixel.art.dev',
+  'coffee.and.code',
+  'wildlife.lens',
+];
+
+function pickFakeNames(count: number): string[] {
+  const shuffled = [...FAKE_DRUM_NAMES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
 export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
   const [giveaway, setGiveaway] = useState<Giveaway | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -31,6 +58,65 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
   const [starting, setStarting] = useState(false);
   const [winners, setWinners] = useState<string[]>([]);
   const [disqualified, setDisqualified] = useState<{ username: string; reason: string }[]>([]);
+  const [drumVisible, setDrumVisible] = useState(false);
+  const [drumText, setDrumText] = useState('');
+  const drumRef = useRef<HTMLDivElement>(null);
+
+  const runDrumRoll = useCallback((finalName: string, onComplete: () => void) => {
+    const el = drumRef.current;
+    if (!el) {
+      onComplete();
+      return;
+    }
+
+    setDrumVisible(true);
+    const fakeCount = 8 + Math.floor(Math.random() * 5);
+    const pool = pickFakeNames(fakeCount);
+    const fastSteps = Math.floor(1000 / 80);
+    const slowSteps = Math.floor(500 / 200);
+    const sequence: string[] = [];
+
+    for (let i = 0; i < fastSteps; i++) {
+      sequence.push(pool[i % pool.length]!);
+    }
+    for (let i = 0; i < slowSteps; i++) {
+      sequence.push(pool[(fastSteps + i) % pool.length]!);
+    }
+
+    const displayName = (name: string) => `@${name.replace(/^@/, '')}`;
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setDrumText(displayName(finalName));
+        gsap.fromTo(
+          el,
+          { scale: 1.4, opacity: 0 },
+          {
+            scale: 1,
+            opacity: 1,
+            duration: 0.4,
+            ease: 'power2.out',
+            onComplete: () => {
+              setDrumVisible(false);
+              onComplete();
+            },
+          }
+        );
+      },
+    });
+
+    sequence.forEach((name, i) => {
+      const delay = i < fastSteps ? i * 0.08 : fastSteps * 0.08 + (i - fastSteps) * 0.2;
+      tl.call(
+        () => {
+          setDrumText(displayName(name));
+          gsap.set(el, { scale: 1, opacity: 1 });
+        },
+        [],
+        delay
+      );
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,15 +184,20 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
         setDetailLine(
           `Pool size: ${payload.sortedPool.length} ticket(s) · Hash: ${payload.seedHash.slice(0, 16)}…`
         );
+        requestAnimationFrame(() => {
+          gsap.from('#seed-display', { duration: 0.6, y: 20, opacity: 0, ease: 'power2.out' });
+        });
       }
     );
 
     socket.on(
       'draw:winner_drawn',
       (payload: { username: string; drawHash: string; winnerIndex: number; roundNumber: number }) => {
-        setStage('winner_drawn');
-        setStatusLine(`Round ${payload.roundNumber}: @${payload.username} selected`);
-        setDetailLine(`Index ${payload.winnerIndex} · ${payload.drawHash.slice(0, 20)}…`);
+        runDrumRoll(payload.username, () => {
+          setStatusLine(`Winner drawn: @${payload.username}`);
+          setDetailLine(`Draw hash: ${payload.drawHash?.slice(0, 16)}...`);
+          setStage('winner_drawn');
+        });
       }
     );
 
@@ -124,6 +215,13 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
           setStatusLine(`@${payload.username} verified — winner confirmed`);
           setDetailLine('');
           confetti({ particleCount: 100, spread: 70, origin: { y: 0.55 } });
+          requestAnimationFrame(() => {
+            gsap.fromTo(
+              '#winner-banner',
+              { scale: 0.8, opacity: 0 },
+              { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
+            );
+          });
         } else {
           setStatusLine(`@${payload.username} disqualified`);
           setDetailLine(
@@ -151,13 +249,22 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
             ? `Winners: ${payload.winners.map((w) => `@${w}`).join(', ')}`
             : 'No winners selected'
         );
+        requestAnimationFrame(() => {
+          gsap.from('.winner-list-item', {
+            duration: 0.4,
+            y: 15,
+            opacity: 0,
+            stagger: 0.1,
+            ease: 'power2.out',
+          });
+        });
       }
     );
 
     return () => {
       socket.disconnect();
     };
-  }, [giveaway?.id]);
+  }, [giveaway?.id, runDrumRoll]);
 
   const handleStartDraw = useCallback(async () => {
     if (!giveaway || starting) return;
@@ -247,14 +354,29 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
             )}
           </div>
 
+          <div
+            ref={drumRef}
+            id="drum-display"
+            className={`mb-4 font-mono font-bold text-amber-400 text-center ${
+              drumVisible ? 'block' : 'hidden'
+            }`}
+            style={{ fontSize: '2rem' }}
+          >
+            {drumText}
+          </div>
+
           <p
+            id="winner-banner"
             key={statusLine}
             className="text-lg font-semibold text-white animate-pulse"
           >
             {statusLine}
           </p>
           {detailLine && (
-            <p className="text-xs text-slate-400 mt-3 font-mono leading-relaxed break-words">
+            <p
+              id={stage === 'seed_revealed' ? 'seed-display' : undefined}
+              className="text-xs text-slate-400 mt-3 font-mono leading-relaxed break-words"
+            >
               {detailLine}
             </p>
           )}
@@ -264,7 +386,7 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
               {winners.map((w) => (
                 <span
                   key={w}
-                  className="px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-sm font-bold font-mono"
+                  className="winner-list-item px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-sm font-bold font-mono"
                 >
                   @{w}
                 </span>
@@ -280,6 +402,29 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
                   @{d.username} — {d.reason}
                 </p>
               ))}
+            </div>
+          )}
+
+          {stage === 'completed' && (
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => onSelectRoute?.(`/giveaway/${slug}/archive`)}
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2"
+              >
+                📋 View Public Proof Archive
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  navigator.clipboard
+                    .writeText(`${window.location.origin}/giveaway/${slug}/archive`)
+                    .then(() => alert('Archive link copied!'))
+                }
+                className="px-5 py-2.5 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold rounded-xl transition cursor-pointer"
+              >
+                🔗 Copy Archive Link
+              </button>
             </div>
           )}
         </div>
@@ -302,15 +447,6 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
           </p>
         )}
 
-        {onSelectRoute && stage === 'completed' && (
-          <button
-            type="button"
-            onClick={() => onSelectRoute(`/giveaway/${giveaway.slug}/archive`)}
-            className="mt-6 text-xs text-amber-500 hover:text-amber-400 cursor-pointer font-semibold"
-          >
-            View proof archive →
-          </button>
-        )}
       </div>
     </div>
   );

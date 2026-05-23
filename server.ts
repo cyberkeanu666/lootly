@@ -83,7 +83,11 @@ async function auditWinnerFollows(
 
 async function startServer() {
   initFirestore();
-  await startScrapeQueue();
+  try {
+    await startScrapeQueue();
+  } catch (e) {
+    console.warn('[Server] Queue init failed, continuing:', e);
+  }
   await repairMissingGiveawaySecrets();
 
   let io!: SocketServer;

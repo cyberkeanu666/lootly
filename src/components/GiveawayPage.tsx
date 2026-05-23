@@ -15,7 +15,7 @@ interface GiveawayPageProps {
 
 export default function GiveawayPage({
   giveaway,
-  participants,
+  participants = [],
   onJoinRequest,
   onVerifyRequest,
   onSelectRoute,
@@ -103,8 +103,13 @@ export default function GiveawayPage({
     }
   };
 
-  const handleCopyRef = () => {
-    const refUrl = `https://lootly.gg/g/${giveaway.slug}?ref=${createdParticipant?.instagramUsername || username}`;
+  const referralShareUrl = (handle: string) =>
+    `${window.location.origin}${window.location.pathname}?ref=${handle.toLowerCase().replace('@', '')}`;
+
+  const handleCopyRef = (url?: string) => {
+    const refUrl =
+      url ||
+      referralShareUrl(createdParticipant?.instagramUsername || username);
     navigator.clipboard.writeText(refUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
@@ -194,6 +199,12 @@ export default function GiveawayPage({
 
         {/* Right Side: Join Interactive Forms & Live Counter Stats (5-cols) */}
         <div className="md:col-span-5 flex flex-col gap-6">
+
+          {referralCode && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/25 rounded-2xl text-xs text-amber-200 leading-relaxed">
+              🎁 You were referred by @{referralCode.replace(/^@/, '')} — joining will give them a bonus ticket!
+            </div>
+          )}
           
           {/* Realtime Stats Block */}
           <div className="bg-[#090f1d] border border-slate-800 rounded-3xl p-5 text-center flex flex-col gap-4">
@@ -257,12 +268,16 @@ export default function GiveawayPage({
                 </div>
 
                 <div className="bg-slate-950 border border-slate-900 w-full p-4 rounded-2xl flex flex-col gap-3">
-                  <span className="text-[10px] uppercase font-mono text-slate-400 block tracking-wider text-left">Your Referral Share link (Boost Ticket Weights):</span>
+                  <p className="text-xs text-slate-300 text-left">
+                    You joined! Share your link to boost your chances:
+                  </p>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       className="flex-1 bg-slate-900 border border-slate-800 p-1.5 rounded text-xs font-mono text-slate-300 focus:outline"
-                      value={`https://lootly.gg/g/${giveaway.slug}?ref=${username.toLowerCase().replace('@','')}`}
+                      value={referralShareUrl(
+                        createdParticipant?.instagramUsername || username
+                      )}
                       disabled
                     />
                     <button
@@ -280,6 +295,27 @@ export default function GiveawayPage({
             ) : verificationCode ? (
               /* Stage 2: Code generated. Tell them to paste it inside Bio and verify */
               <div className="flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+                <div className="bg-slate-950 border border-slate-900 w-full p-3 rounded-xl flex flex-col gap-2">
+                  <p className="text-xs text-slate-300 text-left">
+                    You joined! Share your link to boost your chances:
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      className="flex-1 bg-slate-900 border border-slate-800 p-1.5 rounded text-xs font-mono text-slate-300 focus:outline"
+                      value={referralShareUrl(username)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCopyRef(referralShareUrl(username))}
+                      className="bg-amber-500 text-slate-950 hover:bg-amber-400 px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Clipboard className="h-3 w-3" /> {copiedLink ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2 border-b border-slate-800/80 pb-2.5">
                   <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-bold font-mono text-xs">2</span>
                   <h4 className="text-sm font-semibold text-white">Paste Verification Signature Code</h4>
@@ -390,6 +426,54 @@ export default function GiveawayPage({
                 </button>
               </form>
             )}
+          </div>
+
+          {/* Participants pool */}
+          <div className="bg-[#090f1d] border border-slate-800 rounded-3xl p-5 flex flex-col gap-3">
+            {giveaway.referralBonusTickets > 0 && (
+              <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-xs text-slate-300 leading-relaxed">
+                🎟️ Ticket weight system: Each verified participant gets 1 ticket. Share your referral
+                link and earn +{giveaway.referralBonusTickets} bonus ticket(s) for every person who joins
+                through your link — boosting your chances proportionally.
+              </div>
+            )}
+
+            <h4 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400">
+              {t('giveaway.registeredCount')}
+            </h4>
+
+            <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto">
+              {participants.length === 0 ? (
+                <p className="text-xs text-slate-600 text-center py-4">No participants yet.</p>
+              ) : (
+                participants.map((p) => (
+                  <div
+                    key={p.id}
+                    className="bg-slate-950 border border-slate-900 p-2.5 rounded-xl flex items-center justify-between text-xs font-mono gap-2"
+                  >
+                    <span
+                      className={
+                        p.verifiedAt !== null ? 'text-emerald-400 font-bold' : 'text-slate-400'
+                      }
+                    >
+                      @{p.instagramUsername}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {p.ticketCount > 1 && (
+                        <span className="text-amber-400 font-bold whitespace-nowrap">
+                          🎟️ {p.ticketCount}x
+                        </span>
+                      )}
+                      {p.verifiedAt !== null ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <Clock className="h-3.5 w-3.5 text-slate-600" />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* SVG Synthesised QR Code Block */}
