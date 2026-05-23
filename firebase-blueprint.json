@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "campaigns": {
+      "title": "Campaign",
+      "description": "Giveaway campaign definitions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "prizeName": { "type": "string" },
+        "prizeDescription": { "type": "string" },
+        "prizeValue": { "type": "number" },
+        "maxWinners": { "type": "number" },
+        "entryKeyword": { "type": "string" },
+        "targetInstagramUsername": { "type": "string" },
+        "targetInstagramUserId": { "type": "string" },
+        "status": { "type": "string" },
+        "countdownDuration": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "prizeName", "status"]
+    },
+    "participants": {
+      "title": "Participant",
+      "description": "Registered giveaway participants with their entries",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "tickets": { "type": "number" },
+        "isRealUser": { "type": "boolean" },
+        "isVerified": { "type": "boolean" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "username", "tickets"]
+    },
+    "verificationLogs": {
+      "title": "VerificationLog",
+      "description": "Logs of Meta Instagram Graph API follow validation calls",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "targetUsername": { "type": "string" },
+        "status": { "type": "string" },
+        "apiResponse": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "status"]
+    }
+  },
+  "firestore": {
+    "/campaigns/{campaignId}": {
+      "schema": "campaigns",
+      "description": "Giveaway campaigns"
+    },
+    "/campaigns/{campaignId}/participants/{participantId}": {
+      "schema": "participants",
+      "description": "Participants registered in a specific giveaway"
+    },
+    "/campaigns/{campaignId}/verificationLogs/{logId}": {
+      "schema": "verificationLogs",
+      "description": "Verification logs for Instagram Graph API checks"
+    }
+  }
+}

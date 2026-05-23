@@ -1,0 +1,6 @@
+{
+  "name": "Live Interactive Giveaway Platform",
+  "description": "A high-fidelity real-time giveaway simulation dashboard with customized prize draws, interactive raffle graphics, simulated participant feeds, and a server-side Gemini powered smart quiz generator and prize announcer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

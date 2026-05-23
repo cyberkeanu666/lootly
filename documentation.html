@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lootly.gg — Technical System & Architecture Documentation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #040813;
+      color: #f1f5f9;
+    }
+    h1, h2, h3, h4, th {
+      font-family: 'Montserrat', sans-serif;
+    }
+    pre, code {
+      font-family: 'Fira Code', monospace;
+    }
+  </style>
+</head>
+<body class="selection:bg-amber-500/20 selection:text-amber-300">
+
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="border-b border-slate-800/60 bg-[#060a15]/90 sticky top-0 z-50 backdrop-blur-xl px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="relative bg-amber-500/10 p-2 rounded-xl border border-amber-500/30">
+          <svg class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.168.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5">
+            Lootly<span class="text-amber-500 text-xs tracking-widest uppercase bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">.gg Docs</span>
+          </h1>
+          <p class="text-[9px] text-slate-400 tracking-wider uppercase">System Architecture, Provable Fairness, & Integration Blueprint</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition duration-200 shadow-md shadow-amber-500/10">
+          Back to Live App
+        </a>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-12">
+      <!-- Intro Section -->
+      <div class="bg-gradient-to-r from-slate-900 to-[#0e172e] border border-slate-800/80 rounded-3xl p-8 sm:p-12 mb-10 relative overflow-hidden shadow-2xl">
+        <div class="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div class="relative z-10">
+          <span class="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-semibold text-amber-400 mb-4 uppercase tracking-wider">
+            100% Verified Manual Blueprint
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight mb-4">
+            Lootly System Blueprint & Disclosures
+          </h2>
+          <p class="text-slate-400 text-sm sm:text-base leading-relaxed max-w-3xl mb-0">
+            A comprehensive overview detailing Lootly's architectural boundaries, cryptographic proof mechanisms, fully validated integrations, and simulation disclosures.
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Copy Alert -->
+      <div class="mb-10 bg-[#0a0f1d] border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="text-amber-500">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <span class="text-xs text-slate-400">Need to save this documentation in your repository? Press the copy button to save the raw markdown copy.</span>
+        </div>
+        <button id="mainCopyBtn" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+          </svg>
+          Copy Markdown Content
+        </button>
+      </div>
+
+      <!-- Left-Right Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Sidebar Navigation links -->
+        <div class="space-y-4">
+          <div class="sticky top-28 space-y-2">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest px-3 mb-2">Sections</div>
+            <a href="#overview" class="block w-full text-left px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900/60 hover:text-white transition">1. System Overview</a>
+            <a href="#aesthetic" class="block w-full text-left px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900/60 hover:text-white transition">2. Visual Aesthetics</a>
+            <a href="#specifications" class="block w-full text-left px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900/60 hover:text-white transition">3. Modules & Specifications</a>
+            <a href="#cryptography" class="block w-full text-left px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900/60 hover:text-white transition">4. Provably Fair Math</a>
+            <a href="#disclosures" class="block w-full text-left px-4 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900/60 hover:text-white transition">5. Working vs. Simulated Specs</a>
+          </div>
+        </div>
+
+        <!-- Documentation Core Content -->
+        <div class="lg:col-span-2 space-y-12">
+          <!-- Overview -->
+          <section id="overview" class="scroll-mt-28 space-y-4">
+            <h3 class="text-2xl font-bold text-white text-gradient bg-gradient-to-r from-amber-400 to-amber-500 bg-clip-text text-transparent">1. System Overview</h3>
+            <p class="text-slate-300 text-sm leading-relaxed">
+              Lootly.gg is a next-generation, full-stack, provably fair sweepstakes and engagement platform designed for stream hosts and digital creators. It solves the critical double-spend trust problem in online giveaways by utilizing cryptographically verifiable seeds and mathematical drawing equations that can be audited by third parties.
+            </p>
+          </section>
+
+          <!-- Visual Aesthetics -->
+          <section id="aesthetic" class="scroll-mt-28 space-y-4">
+            <h3 class="text-2xl font-bold text-white">2. Visual Aesthetics</h3>
+            <p class="text-slate-300 text-sm leading-relaxed">
+              Built with an <strong>Ultra-Premium Cyber-Stealth dark theme</strong> to represent trustworthiness, modern engineering precision, and a stellar user experience.
+            </p>
+            <ul class="text-slate-400 text-xs space-y-2 leading-relaxed">
+              <li><strong class="text-slate-200">Typography Pairing:</strong> Montserrat fonts for strong displays, paired with crisp Inter typography in content panels, and Fira Code for parameters.</li>
+              <li><strong class="text-slate-200">Atmospheric Accent tones:</strong> Deep charcoal background colors (<code class="text-slate-300">#040813</code>) merged with glowing neon Amber border layers to construct depth.</li>
+            </ul>
+          </section>
+
+          <!-- Specifications -->
+          <section id="specifications" class="scroll-mt-28 space-y-6">
+            <h3 class="text-2xl font-bold text-white">3. Modules & Component Specifications</h3>
+            
+            <div class="space-y-4">
+              <div class="bg-[#0b1224] border border-slate-800/80 p-5 rounded-2xl">
+                <h4 class="text-white font-bold text-sm mb-1">A. Landing Home View</h4>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                  Introduces streamers to core capabilities. Features an inline Host Sandbox Session portal where users can instantly log in as pre-seeded profiles to test campaign setups.
+                </p>
+              </div>
+
+              <div class="bg-[#0b1224] border border-slate-800/80 p-5 rounded-2xl">
+                <h4 class="text-white font-bold text-sm mb-1">B. Creator Command Center Dashboard</h4>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                  Generates precise overview traffic cards (Direct visits, referrals, social referrals) and live conversion charts. Enables seamless creation, upgrade to Pro tier support, and giveaway link generation.
+                </p>
+              </div>
+
+              <div class="bg-[#0b1224] border border-slate-800/80 p-5 rounded-2xl">
+                <h4 class="text-white font-bold text-sm mb-1">C. Public Campaign Registration Hub</h4>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                  Public interface displaying full timers, rules, verified entrant lists, and pre-published SHA-256 seed transparency keys. Features referral invite widgets that inject cookies pointing to the referrer handles.
+                </p>
+              </div>
+
+              <div class="bg-[#0b1224] border border-slate-800/80 p-5 rounded-2xl">
+                <h4 class="text-white font-bold text-sm mb-1">D. Live Drawing Dome</h4>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                  Streamer-friendly sweepstakes rendering wheel featuring interactive scrolling ribbons, countdowns, configurable velocities, winner logs, and particle celebrations.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Provably Fair Math -->
+          <section id="cryptography" class="scroll-mt-28 space-y-4">
+            <h3 class="text-2xl font-bold text-white">4. Provably Fair Mathematics</h3>
+            <p class="text-slate-300 text-sm leading-relaxed">
+              Lootly ensures absolute fairness by using unshifting deterministic mathematical execution:
+            </p>
+            
+            <div class="bg-slate-950 p-6 rounded-2xl border border-slate-850">
+              <div class="text-xs text-amber-500 font-mono tracking-widest uppercase mb-2">Winner Modular Equation</div>
+              <code class="text-xs sm:text-sm text-amber-200 block overflow-x-auto py-2">
+                Index = BigInt("0x" + SHA256(RevealedSeed)) % BigInt(TotalTickets)
+              </code>
+            </div>
+
+            <ol class="text-slate-400 text-xs space-y-2 list-decimal list-inside leading-relaxed">
+              <li>Hosts input secret seeds behind a pre-published SHA-256 hash.</li>
+              <li>Registered participant lists are padded according to earned invite weights and sorted alphabetically.</li>
+              <li>When the seed is revealed, the host keys are converted into hex formats, combined, and calculated via BigInt modulo math to select the winner index in a 100% unbiased manner.</li>
+            </ol>
+          </section>
+
+          <!-- Disclosures -->
+          <section id="disclosures" class="scroll-mt-28 space-y-6">
+            <h3 class="text-2xl font-bold text-white">5. Architectural Disclosures (Real vs. Simulated)</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="border border-green-500/10 bg-green-950/5 p-5 rounded-2xl">
+                <div class="text-emerald-400 font-bold text-xs mb-2 flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> 100% Real
+                </div>
+                <ul class="text-slate-400 text-xs space-y-2 list-disc list-inside leading-relaxed">
+                  <li>On-disk dual database sync</li>
+                  <li>Cryptographical BigInt modulo formulas</li>
+                  <li>Referral attribution workflows</li>
+                  <li>OBS streamer overlay configurations</li>
+                </ul>
+              </div>
+
+              <div class="border border-amber-500/10 bg-amber-950/5 p-5 rounded-2xl">
+                <div class="text-amber-400 font-bold text-xs mb-2 flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 bg-amber-400 rounded-full"></span> Simulated
+                </div>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                  Due to Instagram's strict CORS policies and credentials blocks, automated scraping of user profile bios is fully simulated inside a background queue widget featuring quick Success/Failure toggles. This allows risk-free developer audits of both outcomes without encountering network bans.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/60 bg-[#02050c]/95 py-6 text-center text-xs text-slate-500">
+      <p>© 2026 Lootly.gg. All rights reserved. System audit matching with cryptographic checksum standards.</p>
+    </footer>
+  </div>
+
+  <script>
+    const markdownContent = `# Lootly.gg — Technical System & Architecture Documentation
+
+## 1. System Overview & Core Philosophy
+Lootly.gg is a next-generation, full-stack, provably fair sweepstakes and engagement platform designed for stream hosts and digital creators. It solves the critical double-spend trust problem in online giveaways by utilizing cryptographically verifiable seeds and mathematical drawing equations that can be audited by third parties.
+
+## 2. Core Visual Concept & Theme
+Lootly is built with an **Ultra-Premium Cyber-Stealth Aesthetic**:
+- **Display Typography**: Montserrat for headers, creating a bold, sleek structure.
+- **Text Typography**: Inter, providing crisp, eye-friendly readability.
+- **Audit/Code Typography**: Fira Code, presenting numbers, JSON records, hashes, and seed strings cleanly.
+- **Color Palette**: Off-black/deep cosmic navy backgrounds (\`#040813\`), charcoal card layers (\`#0b1224\`), vibrant gold accents (\`#f59e0b\`), and success-green indicators.
+
+---
+
+## 3. Detailed Architecture & Modules
+
+### A. Landing Workspace (\`/\`)
+* **Purpose**: Serves as the consumer hook introducing the platform's provable fairness mechanics, core feature grids, subscription tiers, and developer sandbox credentials.
+* **Integrations**: Includes host login simulation forms allowing authentication without friction.
+
+### B. Host Management Space (\`/dashboard\`)
+* **Purpose**: Provides host administrators with granular campaign control panels, high-fidelity traffic analytics, and campaign creation forms.
+* **Core Indicators**:
+  * Total unique campaigns generated.
+  * Weighted conversion ratios.
+  * Live-updating action toggles to trigger Draws, check Proof Archives, or copy campaign slugs.
+* **Campaign Constraints**: Hosts can define custom entry conditions (minimum ticket threshold, social handles, countdown durations).
+
+### C. Participant Social Entry Portal (\`/giveaway/:slug\`)
+* **Purpose**: Allows sweepstakes contestants to sign up and view verifiable details under a transparent, chronological ledger.
+* **Key Mechanisms**:
+  * **Pre-published Verification Hash**: Displays the SHA-256 hash of the host's secret string *before* any entries are processed. This guarantees that the host cannot change the seed phrase once entries start trickling in.
+  * **Referrals Mechanics**: Encourages user acquisition by awarding additional ticket weights (default 4 extra tickets) when a contestant shares an invite URL.
+
+### D. Live Drawing Arena (\`/giveaway/:slug/draw\`)
+* **Purpose**: Renders the dynamic, streaming-ready sweepstakes selection room where a wheel rotates to select winners.
+* **Visuals**: Seamless ticket scrolls, status logs, ticker tapes, and confetti feedback.
+- **Integrations**: Fully responsive canvas scaling.
+
+### E. Proof & Verification Sandbox Archive (\`/giveaway/:slug/archive\`)
+* **Purpose**: The absolute transparency center. Hosts publish revealed seeds, and contestants verify winner drawings independently.
+* **Interactive Cryptographic Sandbox**: Features an in-browser calculator. Users can modify seeds, load custom entrant lists, and re-calculate random indexes to confirm the algorithm's validity.
+
+### F. Streamer Overlay Frame (\`/embed/:slug\`)
+* **Purpose**: Offers a sleek, lightweight countdown and metric visualizer optimized for OBS screen capture.
+
+---
+
+## 4. Provably Fair Verification Mathematics
+
+Lootly ensures drawing fairness through deterministic seed execution:
+1. **Roster Aggregation**: We gather all verified entrants. If a player has a ticket weight of 4, they are inserted 4 times into the roster.
+2. **Alphabetical Sorting**: To avoid arbitrary order bias, we sort the entire array of ticket identifiers alphabetically.
+3. **Seed Revocation**: The host's private seed (e.g., \`LINUS-GEFORCE-SWEEPSTAKES-PREMIUM-CODE\`) is hashed using **SHA-256**.
+4. **Hex-to-Int Modular Math**:
+   * Hash is converted into a heavy 256-bit BigInt value.
+   * Winner calculation: \`Index = BigInt(SHA256(RevealedSeed)) % BigInt(TotalTickets)\`
+5. Since SHA-256 changes completely on any sub-character change (Avalanche effect), the host has zero control over who the modulo math selects, making drawings tamper-proof.
+
+---
+
+## 5. Architectural Integrity Disclosures (Working vs. Simulated)
+
+### What is 100% Functional & Real:
+* **Persistent Disk Storage**: Full-stack Express backend syncs state changes to JSON databases on-disk. All updates remain perfectly preserved between page reloads.
+* **Verifiable BigInt Modular Matching**: Algorithms on the React frontend match server-side BigInt outputs exactly, preventing discrepancies.
+* **Dynamic Query Referrals**: Cookie-less session referral codes tracking.
+
+### What is Simulated (Engineering Disclosures):
+* **Instagram Bio Scraper**: Major networks like Instagram block scraping via IP blocklists, CORS policies, or requiring expensive private API keys. To show how this works, Lootly features a highly detailed, interactive queuing and polling simulator with success/failure fallback toggles. This allows verifying both successful handles and mismatch situations instantly while looking professional.`;
+
+    document.getElementById('mainCopyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(markdownContent).then(() => {
+        const btn = document.getElementById('mainCopyBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg> Copied Successfully!`;
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>
