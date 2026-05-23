@@ -60,7 +60,9 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
   const [disqualified, setDisqualified] = useState<{ username: string; reason: string }[]>([]);
   const [drumVisible, setDrumVisible] = useState(false);
   const [drumText, setDrumText] = useState('');
+  const [showDrawAgain, setShowDrawAgain] = useState(false);
   const drumRef = useRef<HTMLDivElement>(null);
+  const winnerSectionRef = useRef<HTMLDivElement>(null);
 
   const runDrumRoll = useCallback((finalName: string, onComplete: () => void) => {
     const el = drumRef.current;
@@ -162,6 +164,16 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
     };
   }, [slug]);
 
+  // Scroll to winner section when draw completes
+  useEffect(() => {
+    if (stage === 'completed' && winnerSectionRef.current) {
+      setTimeout(() => {
+        winnerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [stage]);
+
+
   useEffect(() => {
     if (!giveaway?.id) return;
 
@@ -193,10 +205,14 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
     socket.on(
       'draw:winner_drawn',
       (payload: { username: string; drawHash: string; winnerIndex: number; roundNumber: number }) => {
+        setStatusLine(`Drawing winner…`);
+        setShowDrawAgain(false);
+
+        // Run drum roll animation, THEN reveal winner
         runDrumRoll(payload.username, () => {
-          setStatusLine(`Winner drawn: @${payload.username}`);
-          setDetailLine(`Draw hash: ${payload.drawHash?.slice(0, 16)}...`);
           setStage('winner_drawn');
+          setStatusLine(`Winner drawn: @${payload.username} — awaiting verification`);
+          setDetailLine(`Draw hash: ${payload.drawHash}`);
         });
       }
     );
@@ -258,6 +274,11 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
             ease: 'power2.out',
           });
         });
+        // Keep winner revealed for 6 seconds before allowing Draw Again
+        setShowDrawAgain(false);
+        setTimeout(() => {
+          setShowDrawAgain(true);
+        }, 6000);
       }
     );
 
@@ -391,15 +412,27 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
           )}
 
           {stage === 'completed' && winners.length > 0 && (
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {winners.map((w) => (
-                <span
-                  key={w}
-                  className="winner-list-item px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-sm font-bold font-mono"
+            <div ref={winnerSectionRef} className="mt-6 flex flex-col items-center gap-4">
+              <div className="flex flex-wrap justify-center gap-2">
+                {winners.map((w) => (
+                  <span
+                    key={w}
+                    className="winner-list-item px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-sm font-bold font-mono"
+                  >
+                    @{w}
+                  </span>
+                ))}
+              </div>
+              {/* Proof Archive link — always visible after completed */}
+              <div className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => onSelectRoute?.(`/giveaway/${slug}/archive`)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-mono hover:bg-emerald-500/20 transition cursor-pointer"
                 >
-                  @{w}
-                </span>
-              ))}
+                  🔒 View Proof Archive
+                </button>
+              </div>
             </div>
           )}
 
@@ -447,6 +480,18 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
           >
             <Play className="h-4 w-4 fill-current" />
             {starting ? 'Drawing…' : 'Start Draw'}
+          </button>
+        )}
+
+        {isHost && stage === 'completed' && showDrawAgain && (
+          <button
+            type="button"
+            onClick={handleStartDraw}
+            disabled={starting}
+            className="mt-8 inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-extrabold text-sm disabled:opacity-50 cursor-pointer"
+          >
+            <Play className="h-4 w-4 fill-current" />
+            {starting ? 'Drawing…' : 'Draw Again'}
           </button>
         )}
 

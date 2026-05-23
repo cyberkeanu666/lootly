@@ -20,7 +20,7 @@ import {
 import { resolveCampaignSeed, repairMissingGiveawaySecrets } from './server/db/seedResolver.js';
 import { initFirestore, isFirestoreActive } from './server/db/firestoreStore.js';
 import { hashPassword, verifyPassword } from './server/auth/password.js';
-import { requireAuth, type AuthRequest } from './server/auth/middleware.js';
+import { requireAuth, optionalAuth, type AuthRequest } from './server/auth/middleware.js';
 import jwt from 'jsonwebtoken';
 import {
   sandboxVerifyWinner,
@@ -484,7 +484,7 @@ async function startServer() {
     res.json(dbData.participants.filter((p) => giveawayIds.has(p.giveawayId)));
   });
 
-  app.post('/api/participants/join-request', async (req, res) => {
+  app.post('/api/participants/join-request', optionalAuth, async (req: AuthRequest, res) => {
     let dbData = await readDatabase();
     const { instagramUsername, giveawayId, referredBy, email } = req.body;
     const clientIp = req.ip || '127.0.0.1';
@@ -495,6 +495,11 @@ async function startServer() {
 
     const giveaway = dbData.giveaways.find((g) => g.id === giveawayId);
     if (!giveaway) return res.status(404).json({ error: 'Giveaway does not exist.' });
+
+    // Prevent giveaway host from joining their own giveaway
+    if (req.hostId && req.hostId === giveaway.hostId) {
+      return res.status(403).json({ error: 'Giveaway hosts cannot participate in their own campaigns.' });
+    }
 
     const handle = instagramUsername.replace('@', '').trim().toLowerCase();
     const normalizedEmail = email ? String(email).trim().toLowerCase() : undefined;
@@ -553,7 +558,7 @@ async function startServer() {
 
     const today = new Date().toISOString().split('T')[0];
     const ipLimitDisabled = process.env.DISABLE_IP_RATE_LIMIT === 'true';
-    const maxPerIp = Number(process.env.MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY) || 3;
+    const maxPerIp = Number(process.env.MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY) || 1;
     const ipEntriesTodayForGiveaway = dbData.participants.filter(
       (p) =>
         p.giveawayId === giveawayId &&

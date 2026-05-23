@@ -11,6 +11,7 @@ interface GiveawayPageProps {
   onVerifyRequest: (participantId: string) => Promise<any>;
   onSelectRoute: (route: string) => void;
   referralCode?: string; // parsed from url query ?ref=XYZ
+  currentHostId?: string;
 }
 
 export default function GiveawayPage({
@@ -19,10 +20,12 @@ export default function GiveawayPage({
   onJoinRequest,
   onVerifyRequest,
   onSelectRoute,
-  referralCode
+  referralCode,
+  currentHostId,
 }: GiveawayPageProps) {
   const { t } = useI18n();
   const { showToast } = useLootlyUI();
+  const isOwner = Boolean(currentHostId && currentHostId === giveaway.hostId);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [referrer, setReferrer] = useState(referralCode || '');
@@ -40,6 +43,7 @@ export default function GiveawayPage({
 
   // Countdown timer calculations
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const verifiedParticipants = participants.filter((p) => p.verifiedAt !== null);
 
   useEffect(() => {
     const target = new Date(giveaway.drawDate).getTime();
@@ -259,7 +263,7 @@ export default function GiveawayPage({
               <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900/60 flex items-center justify-center gap-1.5 text-center">
                 <Users className="h-4 w-4 text-amber-500 shrink-0" />
                 <span className="text-xs text-slate-300 font-medium">
-                  {t('giveaway.registeredCount')}: {participants.length} {t('giveaway.registeredLabel')}
+                  {t('giveaway.registeredCount')}: {verifiedParticipants.length} {t('giveaway.registeredLabel')}
                 </span>
               </div>
             </div>
@@ -414,6 +418,17 @@ export default function GiveawayPage({
                   </div>
                 )}
               </div>
+            ) : isOwner ? (
+              /* Host owner — cannot participate in own giveaway */
+              <div className="flex flex-col items-center gap-4 py-6 text-center">
+                <div className="p-4 bg-slate-900/60 border border-slate-700/60 rounded-2xl">
+                  <span className="text-4xl block mb-3">🔒</span>
+                  <h4 className="text-sm font-bold text-slate-200 mb-1">You are the host of this giveaway</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Creators cannot participate in their own giveaway. This ensures fairness for all participants.
+                  </p>
+                </div>
+              </div>
             ) : (
               /* Stage 3: Normal Entry form input */
               <form onSubmit={handleJoinSubmit} className="flex flex-col gap-4 text-left">
@@ -483,10 +498,10 @@ export default function GiveawayPage({
             </h4>
 
             <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto">
-              {participants.length === 0 ? (
+              {verifiedParticipants.length === 0 ? (
                 <p className="text-xs text-slate-600 text-center py-4">No participants yet.</p>
               ) : (
-                participants.map((p) => (
+                verifiedParticipants.map((p) => (
                   <div
                     key={p.id}
                     className="bg-slate-950 border border-slate-900 p-2.5 rounded-xl flex items-center justify-between text-xs font-mono gap-2"

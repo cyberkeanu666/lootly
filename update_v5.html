@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lootly — Cursor Task Board v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Unbounded:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+	--bg:#03050a; --bg2:#080d18; --bg3:#0d1525; --bg4:#121e35;
+	--border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.13);
+	--red:#ff3b3b; --orange:#ff8c00; --yellow:#f5c842;
+	--green:#00e87a; --blue:#3b9eff; --cyan:#00d4ff;
+	--text:#e8edf5; --muted:#4a5568; --muted2:#8899aa;
+	--mono:'JetBrains Mono',monospace; --head:'Unbounded',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.012) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:-250px;left:50%;transform:translateX(-50%);width:1000px;height:600px;background:radial-gradient(ellipse,rgba(0,232,122,0.04) 0%,transparent 65%);pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 24px 100px;}
+
+header{padding:52px 0 44px;border-bottom:1px solid var(--border2);margin-bottom:44px;}
+.hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.logo{font-family:var(--head);font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
+.logo span{color:var(--green);}
+h1{font-family:var(--head);font-size:clamp(26px,4.5vw,44px);font-weight:900;line-height:1.05;letter-spacing:-1px;}
+h1 em{font-style:normal;color:var(--red);}
+.hsub{margin-top:10px;color:var(--muted2);font-size:12px;max-width:520px;line-height:1.9;}
+.hsub strong{color:var(--cyan);}
+
+.stats{display:flex;gap:1px;background:var(--border);border:1px solid var(--border2);border-radius:10px;overflow:hidden;flex-shrink:0;align-self:flex-end;}
+.sbox{padding:14px 22px;background:var(--bg2);text-align:center;min-width:84px;}
+.sn{font-family:var(--head);font-size:20px;font-weight:700;display:block;}
+.sn.r{color:var(--red);} .sn.o{color:var(--orange);} .sn.y{color:var(--yellow);} .sn.g{color:var(--green);}
+.sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;display:block;}
+
+/* DIAGNOSIS BOX */
+.diag{background:var(--bg2);border:1px solid rgba(255,59,59,0.3);border-radius:12px;padding:20px 24px;margin-bottom:40px;}
+.diag-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--red);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.diag-title::before{content:'⚠';}
+.diag-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start;}
+.diag-row:last-child{border-bottom:none;}
+.diag-label{color:var(--red);min-width:200px;flex-shrink:0;font-weight:700;}
+.diag-val{color:var(--muted2);line-height:1.6;}
+.diag-val code{color:var(--cyan);background:rgba(0,212,255,.07);padding:1px 5px;border-radius:3px;}
+
+.fbar{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;align-items:center;}
+.flabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-right:4px;}
+.fbtn{padding:5px 13px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;}
+.fbtn:hover{color:var(--text);background:var(--bg3);}
+.fbtn.on{background:var(--red);border-color:var(--red);color:#fff;}
+.fbtn.on.oo{background:var(--orange);border-color:var(--orange);}
+.fbtn.on.oy{background:var(--yellow);border-color:var(--yellow);color:#000;}
+.fbtn.on.og{background:var(--green);border-color:var(--green);color:#000;}
+.fbtn.on.oc{background:var(--cyan);border-color:var(--cyan);color:#000;}
+
+.sec{margin-bottom:44px;}
+.sectitle{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.sectxt{font-family:var(--head);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted2);}
+.seccnt{font-size:10px;padding:2px 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,transform .2s;position:relative;}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px;}
+.card.c::before{background:var(--red);}
+.card.h::before{background:var(--orange);}
+.card.m::before{background:var(--yellow);}
+.card:hover{border-color:var(--border2);transform:translateX(2px);}
+.card.done-card{opacity:.4;}
+.card.done-card .ctitle{text-decoration:line-through;color:var(--muted);}
+.hidden{display:none!important;}
+
+.ch{padding:16px 18px 14px 22px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;user-select:none;}
+.cbox{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);flex-shrink:0;margin-top:2px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--bg3);font-weight:700;}
+.cbox:hover{border-color:var(--green);}
+.cbox.ticked{background:var(--green);border-color:var(--green);color:#000;}
+.cmeta{flex:1;}
+.ctop{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.cid{font-size:10px;color:var(--muted);letter-spacing:1px;}
+.pbadge{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;padding:2px 7px;border-radius:4px;font-weight:700;}
+.pc{background:rgba(255,59,59,.14);color:var(--red);border:1px solid rgba(255,59,59,.28);}
+.ph{background:rgba(255,140,0,.14);color:var(--orange);border:1px solid rgba(255,140,0,.28);}
+.pm{background:rgba(245,200,66,.1);color:var(--yellow);border:1px solid rgba(245,200,66,.22);}
+.ftag{font-size:10px;color:var(--cyan);background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.16);padding:2px 7px;border-radius:4px;}
+.ftag.exists{color:#a8c4e0;background:rgba(168,196,224,.06);border-color:rgba(168,196,224,.14);}
+.ctitle{font-family:var(--head);font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4;}
+.cdesc{font-size:12px;color:var(--muted2);line-height:1.6;}
+.ctog{color:var(--muted);font-size:15px;flex-shrink:0;transition:transform .3s;margin-top:3px;}
+.ctog.open{transform:rotate(180deg);}
+
+.cbody{display:none;border-top:1px solid var(--border);background:var(--bg3);}
+.cbody.open{display:block;}
+.cbin{padding:18px 22px;}
+
+.done-box{background:rgba(0,232,122,.04);border:1px solid rgba(0,232,122,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#6ee7b7;line-height:1.8;}
+.done-box strong{color:var(--green);}
+.warn-box{background:rgba(255,140,0,.04);border:1px solid rgba(255,140,0,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffcc80;line-height:1.8;}
+.warn-box strong{color:var(--orange);}
+.bug-box{background:rgba(255,59,59,.04);border:1px solid rgba(255,59,59,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffaaaa;line-height:1.8;}
+.bug-box strong{color:var(--red);}
+
+.todos{list-style:none;margin-bottom:18px;}
+.ti{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted2);align-items:flex-start;}
+.ti:last-child{border-bottom:none;}
+.arr{color:var(--red);flex-shrink:0;margin-top:1px;font-style:normal;}
+.arr.ok{color:var(--green);}
+.arr.w{color:var(--orange);}
+
+.csnip{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:13px 16px;font-size:11.5px;color:#a8c4e0;overflow-x:auto;margin:10px 0;line-height:1.9;}
+.csnip .k{color:#79b8ff;} .csnip .s{color:#9ecbff;} .csnip .c{color:#3d4f5e;font-style:italic;}
+.csnip .bad{color:var(--red);} .csnip .good{color:var(--green);}
+
+.psec{margin-top:18px;border:1px solid rgba(0,212,255,.18);border-radius:10px;overflow:hidden;}
+.phead{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,212,255,.05);border-bottom:1px solid rgba(0,212,255,.13);}
+.plabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);font-weight:700;display:flex;align-items:center;gap:6px;}
+.plabel::before{content:'⌘';}
+.copybtn{display:flex;align-items:center;gap:5px;padding:5px 14px;background:var(--cyan);color:#000;border:none;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.copybtn:hover{background:#fff;transform:scale(1.03);}
+.copybtn.ok{background:var(--green);}
+.ptext{padding:14px 16px;font-size:11.5px;color:#a8c4e0;line-height:1.95;white-space:pre-wrap;word-break:break-word;background:var(--bg);max-height:460px;overflow-y:auto;}
+.ptext::-webkit-scrollbar{width:3px;}
+.ptext::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.done-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.done-item{background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:12px 16px;}
+.done-item-title{color:var(--green);font-size:10px;margin-bottom:5px;}
+.done-item-desc{font-size:11px;color:var(--muted2);}
+
+.pbar-wrap{position:fixed;bottom:0;left:0;right:0;background:rgba(3,5,10,.96);border-top:1px solid var(--border2);backdrop-filter:blur(20px);padding:11px 24px;display:flex;align-items:center;gap:18px;z-index:100;}
+.pbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);white-space:nowrap;}
+.pbbar{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.pbfill{height:100%;background:linear-gradient(90deg,var(--red),var(--orange),var(--green));border-radius:2px;width:0%;transition:width .7s ease;}
+.pbpct{font-family:var(--head);font-size:12px;color:var(--text);white-space:nowrap;min-width:48px;}
+.pbcnt{font-size:10px;color:var(--muted2);white-space:nowrap;}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+@media(max-width:640px){h1{font-size:24px;}.stats{width:100%;}.done-grid{grid-template-columns:1fr;}.diag-label{min-width:120px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+<div class="hrow">
+<div>
+<div class="logo">Loot<span>ly</span> — Cursor Task Board <span>v5</span></div>
+<h1>Patch <em>svih bugova</em><br>iz tvoje prijave + novi</h1>
+<p class="hsub">Analiza <strong>v4patch.zip</strong> koda — tačno šta je pokvareno, zašto, i copy-paste promptovi za Cursor Agent. Idi odozgo prema dole, redosled je bitan.</p>
+</div>
+<div class="stats">
+<div class="sbox"><span class="sn r" id="cnt-c">4</span><span class="sl">Kritično</span></div>
+<div class="sbox"><span class="sn o" id="cnt-h">3</span><span class="sl">Visoko</span></div>
+<div class="sbox"><span class="sn y" id="cnt-m">2</span><span class="sl">Srednje</span></div>
+<div class="sbox"><span class="sn g" id="cnt-done">0</span><span class="sl">Gotovo</span></div>
+</div>
+</div>
+</header>
+
+<!-- DIJAGNOZA DIJAGNOZE -->
+<div class="diag">
+<div class="diag-title">Root cause dijagnoza tvojih 5 prijavljenih problema</div>
+<div class="diag-row">
+<span class="diag-label">🔴 Proof Archive nije vidljiv svima</span>
+<span class="diag-val">U <code>App.tsx</code> nav dugme za Proof Archive ima <code>disabled={!host || !proofArchiveRoute}</code> — dvostruki uslov. Čak i kad je giveaway completed i slug postoji, dugme je disabled za goste. Trebalo bi biti clickable za sve, a <code>proofArchiveRoute</code> treba biti izvedena iz bilo kog completed giveaway-a (ne samo host-ovog).</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">🔴 Instagram validacija — uvek prolazi</span>
+<span class="diag-val">U <code>server/scraper/instagramBio.ts</code> sandbox mode (line 68-73) vraća <code>bioText: '[sandbox] LOOTLY verification for @handle'</code> koji uvek sadrži verifikacioni kod jer <code>scrapeInstagramBioForCode()</code> zatim checkuje da li bio sadrži kod — a sandbox bio string uvek "sadrži" generički pattern. Rezultat: sandbox mode verifikuje sve prolaznike. Fix: sandbox treba da direktno vrati <code>codeFound: true</code> umesto da ide kroz bio-matching logiku.</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">🔴 Creator može sebe dodati</span>
+<span class="diag-val">U <code>GiveawayPage.tsx</code> nema provere da li je trenutno ulogovani host vlasnik tog giveaway-a — input polje je uvek dostupno. Treba: u <code>App.tsx</code> prosleđivati <code>currentHost</code> kao prop GiveawayPage-u i u samom komponentu onemogućiti input + prikazati poruku kad je <code>host?.id === giveaway.hostId</code>. Server-side guard takođe nedostaje — nema provere u <code>POST /api/participants/join</code> da li JWT korisnik kreirao taj giveaway.</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">🔴 3x prijava s različitih naloga (isti creator)</span>
+<span class="diag-val">IP rate limit je <code>MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY = 3</code> (default), i to je upravo to — 3 različita usernamea sa istog IP-a. Promeniti default na <code>1</code> u <code>server.ts</code> za produkciju, ili dodati <code>DISABLE_IP_RATE_LIMIT=false</code> eksplicitno u <code>.env</code>. Za kreatore: dodati server-side blokadu po <code>hostId</code> koji dolazi iz JWT-a.</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">🟡 Draw animacija — prebrza + reset odmah</span>
+<span class="diag-val">U <code>src/pages/DrawPage.tsx</code> — <code>runDrumRoll()</code> postoji i radi, ALI <code>startDraw()</code> handler na dugmetu poziva direktno API bez čekanja drum roll animacije. Socket event <code>draw:winner_drawn</code> se primio ali drum roll se ne startuje iz tog eventa — samo se postavi <code>stage</code>. Posle draw-a, <code>stage</code> se odmah resetuje jer nema <code>setTimeout</code> zadrške pre nego što se vrati na <code>'waiting'</code> state za novi draw.</span>
+</div>
+</div>
+
+<!-- FILTER -->
+<div class="fbar">
+<span class="flabel">Filter:</span>
+<button class="fbtn on oc" onclick="doFilter('all',this)">Sve</button>
+<button class="fbtn" onclick="doFilter('c',this)">🔴 Kritično</button>
+<button class="fbtn" onclick="doFilter('h',this)">🟠 Visoko</button>
+<button class="fbtn" onclick="doFilter('m',this)">🟡 Srednje</button>
+<button class="fbtn" onclick="doFilter('done',this)">✅ Gotovo</button>
+</div>
+
+<!-- ══════════════ CRITICAL ══════════════ -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--red);font-size:15px">●</span>
+<span class="sectxt">Kritično — Radi odmah</span>
+<span class="seccnt" id="sc-c">4 taskova</span>
+</div>
+
+<!-- #01 -->
+<div class="card c" data-p="c" id="t01">
+<div class="ch" onclick="tog('t01')">
+<div class="cbox" onclick="tick(event,'t01')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#01</span>
+<span class="pbadge pc">KRITIČNO</span>
+<span class="ftag exists">src/App.tsx</span>
+</div>
+<div class="ctitle">Proof Archive nije vidljiv za goste — nav dugme uvek disabled bez login-a</div>
+<div class="cdesc">Korisnici bez naloga ne mogu da pristupe Proof Archive-u iako je to javna stranica. Nav dugme ima dvostruki uslov koji zahteva i <code>host</code> session i aktivan giveaway.</div>
+</div>
+<div class="ctog" id="tog-t01">▾</div>
+</div>
+<div class="cbody" id="b-t01">
+<div class="cbin">
+<div class="bug-box">
+<strong>Problem kod (App.tsx ~line 362 i ~line 654):</strong><br>
+<code>const proofArchiveRoute = completedHostGiveaway ? `/giveaway/${completedHostGiveaway.slug}/archive` : null;</code><br>
+— <code>completedHostGiveaway</code> je <code>undefined</code> za gosta jer filtrira samo host-ove giveaway-e.<br><br>
+Nav dugme: <code>disabled={!host || !proofArchiveRoute}</code> — dvostruka blokada, gost uvek blokiran.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Kreirati novu computed varijablu <code>publicArchiveRoute</code> koja traži bilo koji completed giveaway (nije samo host-ov)</span></li>
+<li class="ti"><i class="arr">→</i><span>Nav dugme: ukloniti <code>!host</code> uslov, koristiti samo <code>!publicArchiveRoute</code></span></li>
+<li class="ti"><i class="arr">→</i><span>Kada je gost, dugme vodi na archive prvog completed giveaway-a koji postoji</span></li>
+<li class="ti"><i class="arr">→</i><span>Kad je host ulogovan, i dalje preferovati njegov completed giveaway ako postoji</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p01')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p01">Fix Proof Archive nav button visibility in src/App.tsx — it must be accessible to ALL users, not just logged-in hosts.
+
+EXISTING FILE: src/App.tsx
+
+STEP 1 — Find the line that computes proofArchiveRoute (around line 362):
+
+FIND:
+  const proofArchiveRoute = completedHostGiveaway
+    ? `/giveaway/${completedHostGiveaway.slug}/archive`
+    : null;
+
+REPLACE WITH:
+  // Public archive: prefer the host's own completed giveaway, fallback to any completed giveaway
+  const anyCompletedGiveaway = giveaways.find((g) => g.status === 'completed');
+  const proofArchiveRoute = completedHostGiveaway
+    ? `/giveaway/${completedHostGiveaway.slug}/archive`
+    : anyCompletedGiveaway
+      ? `/giveaway/${anyCompletedGiveaway.slug}/archive`
+      : null;
+
+STEP 2 — Find the Proof Archive nav button (around line 651-671):
+
+FIND:
+          <button
+            type="button"
+            disabled={!host || !proofArchiveRoute}
+            title={
+              !host
+                ? t('nav.navDisabledLogin')
+                : !proofArchiveRoute
+                  ? t('nav.noCampaignForArchive')
+                  : undefined
+            }
+            onClick={() => proofArchiveRoute && setCurrentRoute(proofArchiveRoute)}
+            className={`${navBtnBase} ${
+              !host || !proofArchiveRoute
+                ? navBtnDisabled
+                : currentRoute.endsWith('/archive')
+                  ? navBtnActive
+                  : navBtnIdle
+            }`}
+          >
+            {t('nav.proofArchive')}
+          </button>
+
+REPLACE WITH:
+          <button
+            type="button"
+            disabled={!proofArchiveRoute}
+            title={
+              !proofArchiveRoute
+                ? t('nav.noCampaignForArchive')
+                : undefined
+            }
+            onClick={() => proofArchiveRoute && setCurrentRoute(proofArchiveRoute)}
+            className={`${navBtnBase} ${
+              !proofArchiveRoute
+                ? navBtnDisabled
+                : currentRoute.endsWith('/archive')
+                  ? navBtnActive
+                  : navBtnIdle
+            }`}
+          >
+            {t('nav.proofArchive')}
+          </button>
+
+That is all. Do not touch any other nav buttons or routing logic.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #02 -->
+<div class="card c" data-p="c" id="t02">
+<div class="ch" onclick="tog('t02')">
+<div class="cbox" onclick="tick(event,'t02')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#02</span>
+<span class="pbadge pc">KRITIČNO</span>
+<span class="ftag exists">server/scraper/instagramBio.ts</span>
+</div>
+<div class="ctitle">Instagram validacija uvek prolazi u sandbox modu — pogrešna sandbox implementacija</div>
+<div class="cdesc">Sandbox mode simulira Instagram bio ali ga šalje kroz istu bio-matching logiku, koja pronalazi "match" jer uvek generiše string koji pasuje. Svaki username prolazi verifikaciju bez ikakve provere.</div>
+</div>
+<div class="ctog" id="tog-t02">▾</div>
+</div>
+<div class="cbody" id="b-t02">
+<div class="cbin">
+<div class="bug-box">
+<strong>Trenutni kod (instagramBio.ts ~line 68-73):</strong><br>
+<code>if (process.env.SCRAPER_SANDBOX === 'true') {</code><br>
+<code>&nbsp;&nbsp;return { bioText: `[sandbox] LOOTLY verification for @${handle}`, ... }</code><br>
+<code>}</code><br><br>
+Problem: ova funkcija vraća <strong>raw bio text</strong>, a caller zatim proverava da li bio sadrži <code>verificationCode</code>. Sandbox bio ne sadrži pravi kod, ali neka pattern-matching logika ili drugačiji caller path to ne proverava ispravno. Sandbox treba da directno vrati <code>codeFound: true/false</code> na osnovu randomizovanog ishoda (ili uvek false za sigurnost).
+</div>
+<div class="warn-box">
+<strong>Napomena:</strong> Za razvoj uvek koristiš <code>SCRAPER_SANDBOX=true</code> ali to ne sme da znači "uvek verifikuj". Sandbox treba da simulira realan tok — kod mora da postoji. Bolja opcija: sandbox vraća <code>codeFound: true</code> samo ako je <code>verificationCode</code> prosleđen (što ga Cursor/dev uvek ima jer je u UI-u), kao eksplicitnu simulaciju.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U <code>scrapeInstagramBioForCode()</code>: sandbox blok treba da vrati <code>{ codeFound: true, bioText: '[sandbox]', source: 'sandbox' }</code> direktno — zaobići bio-matching</span></li>
+<li class="ti"><i class="arr">→</i><span>Proveriti return type funkcije — mora biti <code>{ codeFound: boolean, bioText: string, source: string }</code></span></li>
+<li class="ti"><i class="arr">→</i><span>Isti fix primeniti i na <code>scrapeFollowingList()</code> sandbox blok (line ~249)</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p02')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p02">Fix sandbox mode in server/scraper/instagramBio.ts — sandbox must return codeFound directly, not a fake bio string that bypasses verification logic incorrectly.
+
+EXISTING FILE: server/scraper/instagramBio.ts
+
+STEP 1 — Find the scrapeInstagramBioForCode function. It should have a sandbox block near the top of the function body that looks like:
+
+  if (process.env.SCRAPER_SANDBOX === 'true') {
+    return {
+      bioText: `[sandbox] LOOTLY verification for @${handle}`,
+      ...
+      source: 'sandbox',
+    };
+  }
+
+The return type of scrapeInstagramBioForCode must include a codeFound boolean field.
+
+REPLACE the entire sandbox early-return block inside scrapeInstagramBioForCode with:
+
+  if (process.env.SCRAPER_SANDBOX === 'true') {
+    console.log(`[Scraper/sandbox] Simulating bio check for @${handle}, code=${verificationCode}`);
+    return {
+      codeFound: true,
+      bioText: `[sandbox mode] Simulated bio containing code ${verificationCode}`,
+      source: 'sandbox' as const,
+      error: undefined,
+    };
+  }
+
+STEP 2 — Also find the scrapeFollowingList function and its sandbox block that looks like:
+
+  if (process.env.SCRAPER_SANDBOX === 'true') {
+    return { success: true, following: [], isPrivate: false, source: 'sandbox' };
+  }
+
+This one is already correct — leave it unchanged.
+
+STEP 3 — Make sure the return type/interface of scrapeInstagramBioForCode includes { codeFound: boolean }. If it currently returns { bioText: string; source: string } without codeFound, add codeFound to the return type interface.
+
+Do not change any other logic outside the sandbox blocks.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #03 -->
+<div class="card c" data-p="c" id="t03">
+<div class="ch" onclick="tog('t03')">
+<div class="cbox" onclick="tick(event,'t03')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#03</span>
+<span class="pbadge pc">KRITIČNO</span>
+<span class="ftag exists">src/App.tsx</span>
+<span class="ftag exists">src/components/GiveawayPage.tsx</span>
+<span class="ftag exists">server.ts</span>
+</div>
+<div class="ctitle">Creator može da upiše sebe (ili koga god) i prijavi se za sopstveni giveaway</div>
+<div class="cdesc">Kada je creator ulogovan i poseti vlastitu giveaway stranicu, polje za unos Instagram handle-a je aktivno. Nema ni frontend ni backend zaštite koja bi sprečila prijavu vlasnika giveaway-a.</div>
+</div>
+<div class="ctog" id="tog-t03">▾</div>
+</div>
+<div class="cbody" id="b-t03">
+<div class="cbin">
+<div class="bug-box">
+<strong>Dvostruki propust:</strong><br>
+1. <strong>Frontend</strong>: <code>GiveawayPage.tsx</code> prima <code>giveaway</code> prop ali ne zna ko je ulogovani host. Treba proslediti <code>currentHostId</code> prop i blokirati formu.<br>
+2. <strong>Backend</strong>: <code>POST /api/participants/join</code> u <code>server.ts</code> ne proverava da li JWT <code>hostId</code> iz tokena odgovara <code>giveaway.hostId</code>. Čak i bez frontenda, API poziv prolazi.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U <code>App.tsx</code>: proslediti <code>currentHostId={host?.id}</code> kao prop u <code>&lt;GiveawayPage&gt;</code></span></li>
+<li class="ti"><i class="arr">→</i><span>U <code>GiveawayPage.tsx</code>: dodati <code>currentHostId?: string</code> u interface i koristiti <code>isOwner = currentHostId === giveaway.hostId</code></span></li>
+<li class="ti"><i class="arr">→</i><span>Kada je <code>isOwner === true</code>: sakriti join formu, prikazati info box "You are the host of this giveaway"</span></li>
+<li class="ti"><i class="arr">→</i><span>U <code>server.ts</code> join endpoint: dodati server-side guard — ako JWT postoji i <code>req.hostId === giveaway.hostId</code>, odbiti sa 403</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p03')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p03">Prevent giveaway creators from joining their own giveaway. Apply fix in three places.
+
+=== PART 1: src/App.tsx ===
+
+Find the GiveawayPage render call (around line 523):
+
+FIND:
+      <GiveawayPage
+        giveaway={giveawayMatch}
+        participants={participants}
+        onJoinRequest={handleJoinRegistration}
+        onVerifyRequest={handleScrapeVerification}
+        onSelectRoute={setCurrentRoute}
+        referralCode={referralsQueryCode}
+      />
+
+REPLACE WITH:
+      <GiveawayPage
+        giveaway={giveawayMatch}
+        participants={participants}
+        onJoinRequest={handleJoinRegistration}
+        onVerifyRequest={handleScrapeVerification}
+        onSelectRoute={setCurrentRoute}
+        referralCode={referralsQueryCode}
+        currentHostId={host?.id}
+      />
+
+=== PART 2: src/components/GiveawayPage.tsx ===
+
+FIND the props interface (GiveawayPageProps):
+
+FIND:
+interface GiveawayPageProps {
+  giveaway: Giveaway;
+  participants: Participant[];
+  onJoinRequest: (username: string, referredBy?: string, email?: string) => Promise<any>;
+  onVerifyRequest: (participantId: string) => Promise<any>;
+  onSelectRoute: (route: string) => void;
+  referralCode?: string;
+}
+
+REPLACE WITH:
+interface GiveawayPageProps {
+  giveaway: Giveaway;
+  participants: Participant[];
+  onJoinRequest: (username: string, referredBy?: string, email?: string) => Promise<any>;
+  onVerifyRequest: (participantId: string) => Promise<any>;
+  onSelectRoute: (route: string) => void;
+  referralCode?: string;
+  currentHostId?: string;
+}
+
+Then find the destructuring in the component function:
+
+FIND:
+}: GiveawayPageProps) {
+
+Add currentHostId to the destructured props:
+
+export default function GiveawayPage({
+  giveaway,
+  participants = [],
+  onJoinRequest,
+  onVerifyRequest,
+  onSelectRoute,
+  referralCode,
+  currentHostId,
+}: GiveawayPageProps) {
+
+Then add this derived constant right after the hooks/state declarations (before the return):
+
+  const isOwner = Boolean(currentHostId && currentHostId === giveaway.hostId);
+
+Then find the section that renders the join form. It likely has a condition like:
+  ) : (
+    /* Stage 3: Normal Entry form input */
+    <form onSubmit={handleJoinSubmit} ...>
+
+WRAP the entire form (and any preceding step elements in that branch) with an isOwner check. Add this BEFORE the form:
+
+  {isOwner ? (
+    <div className="bg-amber-950/20 border border-amber-700/30 rounded-2xl p-5 text-center flex flex-col gap-3">
+      <span className="text-2xl">🔒</span>
+      <p className="text-sm font-semibold text-amber-300">You are the host of this giveaway</p>
+      <p className="text-xs text-slate-400">Creators cannot participate in their own giveaway. This ensures fairness for all participants.</p>
+    </div>
+  ) : (
+    /* existing form JSX */
+    <form ...>
+      ...
+    </form>
+  )}
+
+=== PART 3: server.ts ===
+
+Find the POST /api/participants/join handler. Find the section where it validates the giveaway exists (after finding giveaway from giveawayId):
+
+FIND:
+    const giveaway = dbData.giveaways.find((g) => g.id === giveawayId);
+    if (!giveaway) return res.status(404).json({ error: 'Giveaway does not exist.' });
+
+Add the host self-join guard IMMEDIATELY after:
+
+    const giveaway = dbData.giveaways.find((g) => g.id === giveawayId);
+    if (!giveaway) return res.status(404).json({ error: 'Giveaway does not exist.' });
+
+    // Prevent giveaway host from joining their own giveaway
+    if (req.hostId && req.hostId === giveaway.hostId) {
+      return res.status(403).json({ error: 'Giveaway hosts cannot participate in their own campaigns.' });
+    }
+
+Note: req.hostId is set by the requireAuth or auth-reading middleware from the JWT token (it may be optional/undefined for guests). This check only fires when a JWT is present AND the user is the owner.
+
+Do not change any other logic.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #04 -->
+<div class="card c" data-p="c" id="t04">
+<div class="ch" onclick="tog('t04')">
+<div class="cbox" onclick="tick(event,'t04')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#04</span>
+<span class="pbadge pc">KRITIČNO</span>
+<span class="ftag exists">src/pages/DrawPage.tsx</span>
+</div>
+<div class="ctitle">Draw animacija se preskače / odmah resetuje — drum roll se ne pokreće iz socket eventa, stage se vraća odmah</div>
+<div class="cdesc">Klik na Start Draw triggeruje API ali drum roll animacija se ne čeka. Nakon što se pobednik izvuče, UI se odmah vraća u "waiting" state bez zadržavanja na pobedniku — stage tranzicija nema delay pre reset-a.</div>
+</div>
+<div class="ctog" id="tog-t04">▾</div>
+</div>
+<div class="cbody" id="b-t04">
+<div class="cbin">
+<div class="bug-box">
+<strong>Dva odvojena problema u DrawPage.tsx:</strong><br><br>
+<strong>Problem A — animacija:</strong> <code>draw:winner_drawn</code> socket event setuje <code>stage('winner_drawn')</code> ali ne poziva <code>runDrumRoll()</code>. Drum roll se pokreće samo ako ga negde eksplicitno pozoves unutar tog event handler-a.<br><br>
+<strong>Problem B — reset:</strong> Kada je draw completed, nema <code>setTimeout</code> zadrške pre nego što se UI može koristiti za novi draw. Trebalo bi da ostane na "winner revealed" stanju minimum 5-8 sekundi pre nego što se ponudi "Draw Again" opcija.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U <code>draw:winner_drawn</code> event handler-u: pre <code>setStage('winner_drawn')</code>, pozvati <code>runDrumRoll(payload.username, () => setStage('winner_drawn'))</code></span></li>
+<li class="ti"><i class="arr">→</i><span>Na kraju draw sekvence (kad stage postane <code>completed</code>): ne dozvoliti ponovan Draw odmah — sačekati <code>setTimeout</code> od 6000ms pre prikazivanja "Draw Again" dugmeta</span></li>
+<li class="ti"><i class="arr">→</i><span>Dodati <code>showDrawAgain</code> boolean state koji se setuje na true tek nakon delay-a</span></li>
+<li class="ti"><i class="arr">→</i><span>Proof Archive link treba ostati vidljiv kad je stage <code>completed</code></span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p04')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p04">Fix draw animation sequence in src/pages/DrawPage.tsx — drum roll must play on winner drawn event, and the completed state must persist before resetting.
+
+EXISTING FILE: src/pages/DrawPage.tsx
+
+STEP 1 — Add a new state variable near the other useState declarations at the top of the component:
+
+  const [showDrawAgain, setShowDrawAgain] = useState(false);
+
+STEP 2 — Find the draw:winner_drawn socket event handler. It looks like:
+
+      'draw:winner_drawn',
+      (payload: { username: string; drawHash: string; winnerIndex: number; roundNumber: number }) => {
+        // ... some code ...
+        setStage('winner_drawn');
+        // ...
+      }
+
+REPLACE the body so that runDrumRoll is called BEFORE the stage changes:
+
+      'draw:winner_drawn',
+      (payload: { username: string; drawHash: string; winnerIndex: number; roundNumber: number }) => {
+        setStatusLine(`Drawing winner…`);
+        setShowDrawAgain(false);
+
+        // Run drum roll animation, THEN reveal winner
+        runDrumRoll(payload.username, () => {
+          setStage('winner_drawn');
+          setStatusLine(`Winner drawn: @${payload.username} — awaiting verification`);
+          setDetailLine(`Draw hash: ${payload.drawHash}`);
+        });
+      }
+
+STEP 3 — Find the draw:completed or 'completed' stage handler. It might look like:
+
+        setStage('completed');
+        setWinners(payload.winners || []);
+
+After this (inside the same handler block, after setStage('completed')), add:
+
+        // Keep winner revealed for 6 seconds before allowing Draw Again
+        setShowDrawAgain(false);
+        setTimeout(() => {
+          setShowDrawAgain(true);
+        }, 6000);
+
+STEP 4 — Find the JSX where the "Start Draw" or "Draw Again" button is rendered. It likely checks stage === 'waiting' or stage === 'completed'. Change any "draw again" / "start new draw" button to be conditionally shown using showDrawAgain:
+
+FIND any button that triggers a new draw when stage is completed. Wrap it:
+
+        {showDrawAgain && (
+          // ... existing draw again button JSX ...
+        )}
+
+STEP 5 — Make sure the winner display section (stage === 'winner_verified' or stage === 'completed') stays visible and does NOT disappear immediately. The Proof Archive link should be shown whenever stage === 'completed'. Do not reset stage or winners on component re-render.
+
+Do not change the runDrumRoll function implementation itself.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end critical sec -->
+
+<!-- ══════════════ HIGH ══════════════ -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--orange);font-size:15px">●</span>
+<span class="sectxt">Visoko — Uradi sledećeg dana</span>
+<span class="seccnt" id="sc-h">3 taskova</span>
+</div>
+
+<!-- #05 -->
+<div class="card h" data-p="h" id="t05">
+<div class="ch" onclick="tog('t05')">
+<div class="cbox" onclick="tick(event,'t05')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#05</span>
+<span class="pbadge ph">VISOKO</span>
+<span class="ftag exists">server.ts</span>
+</div>
+<div class="ctitle">IP rate limit default = 3 omogućava multi-prijavu — promeniti na 1 + dodati host JWT blokadu</div>
+<div class="cdesc">Env varijabla <code>MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY</code> defaultuje na <code>3</code> što dozvoljava 3 različita Instagram usernamea sa istog IP-a. Creator je mogao da se prijavi 3 puta sa različitim profilima jer nema JWT provere — samo IP.</div>
+</div>
+<div class="ctog" id="tog-t05">▾</div>
+</div>
+<div class="cbody" id="b-t05">
+<div class="cbin">
+<div class="warn-box">
+<strong>Trenutni kod (server.ts ~line 563):</strong><br>
+<code>const maxPerIp = Number(process.env.MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY) || 3;</code><br>
+Default od 3 je previše liberalan za produkciju. Treba da bude <strong>1</strong> kao default, a 3 samo eksplicitno u <code>.env</code> za testiranje.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Promeniti fallback default sa <code>|| 3</code> na <code>|| 1</code> u server.ts</span></li>
+<li class="ti"><i class="arr">→</i><span>Ažurirati <code>.env.example</code>: dodati <code>MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY=3</code> sa komentarom da je default 1 u produkcionom modu</span></li>
+<li class="ti"><i class="arr w">!</i><span>Task #03 (host self-join blokada) mora biti završen pre ovoga jer je to važniji fix za isti problem</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p05')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p05">Tighten IP rate limit default in server.ts and update .env.example.
+
+EXISTING FILE: server.ts
+
+FIND:
+    const maxPerIp = Number(process.env.MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY) || 3;
+
+REPLACE WITH:
+    const maxPerIp = Number(process.env.MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY) || 1;
+
+EXISTING FILE: .env.example
+
+Find the section with rate limit or participant settings. Add this line if it doesn't already exist:
+
+# Max different Instagram usernames allowed per IP per giveaway per day (default: 1 in production, set to 3 for local testing)
+MAX_IP_USERNAMES_PER_GIVEAWAY_PER_DAY=3
+
+That is the complete change. Do not touch any other rate limiting logic.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #06 -->
+<div class="card h" data-p="h" id="t06">
+<div class="ch" onclick="tog('t06')">
+<div class="cbox" onclick="tick(event,'t06')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#06</span>
+<span class="pbadge ph">VISOKO</span>
+<span class="ftag exists">src/pages/DrawPage.tsx</span>
+<span class="ftag exists">src/pages/ArchivePage.tsx</span>
+</div>
+<div class="ctitle">Nakon draw-a — UI ne ostaje na Proof Archive delu, odmah se može kliknuti Draw Again</div>
+<div class="cdesc">Posle izvlačenja pobednika, stranica nema "lock" period. Proof Archive sekcija bi trebala biti prominentna i persistentna. "Draw Again" dugme ne sme biti dostupno odmah — treba delay i jasna vizuelna sekvenca.</div>
+</div>
+<div class="ctog" id="tog-t06">▾</div>
+</div>
+<div class="cbody" id="b-t06">
+<div class="cbin">
+<div class="warn-box">
+<strong>Ovo je nastavak task-a #04</strong> — radi ga tek kad #04 bude završen.<br><br>
+Dodatno: u <code>DrawPage.tsx</code> kada je <code>stage === 'completed'</code>, treba scrollovati na sekciju koja prikazuje pobednike i link ka Proof Archive-u. Korisnik ne sme da "propusti" taj momenat.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Dodati <code>useRef</code> na winner sekciju i <code>scrollIntoView({ behavior: 'smooth' })</code> kada stage postane <code>completed</code></span></li>
+<li class="ti"><i class="arr">→</i><span>Winner banner treba da ostane vidljiv minimum 8 sekundi pre nego što fade-out počne (koristiti GSAP <code>delay</code>)</span></li>
+<li class="ti"><i class="arr">→</i><span>Proof Archive dugme/link treba biti prikazano odmah kada je stage <code>completed</code> — bez čekanja</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p06')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p06">Improve post-draw UX in src/pages/DrawPage.tsx — scroll to winner section, keep it visible, show Proof Archive link prominently.
+
+PREREQUISITE: Task #04 must already be applied.
+
+EXISTING FILE: src/pages/DrawPage.tsx
+
+STEP 1 — Add a ref for the winner results section. Near the other useRef declarations:
+
+  const winnerSectionRef = useRef<HTMLDivElement>(null);
+
+STEP 2 — Add a useEffect that scrolls to the winner section when stage changes to 'completed':
+
+  useEffect(() => {
+    if (stage === 'completed' && winnerSectionRef.current) {
+      setTimeout(() => {
+        winnerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [stage]);
+
+STEP 3 — Find the JSX section that renders completed state winners. It likely looks like:
+  {stage === 'completed' && winners.length > 0 && (
+    <div ...>
+      {winners.map((w) => (...))}
+    </div>
+  )}
+
+Wrap it with the ref and add the Proof Archive link INSIDE this section:
+
+  {stage === 'completed' && winners.length > 0 && (
+    <div ref={winnerSectionRef} className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2 justify-center">
+        {winners.map((w) => (
+          <span key={w} className="winner-list-item px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-sm font-bold font-mono">
+            @{w}
+          </span>
+        ))}
+      </div>
+      {/* Proof Archive link — always visible after completed */}
+      <div className="text-center">
+        <button
+          onClick={() => onSelectRoute(`/giveaway/${slug}/archive`)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-mono hover:bg-emerald-500/20 transition"
+        >
+          🔒 View Proof Archive
+        </button>
+      </div>
+    </div>
+  )}
+
+Note: if DrawPage doesn't receive onSelectRoute as a prop, add it from the parent App.tsx (setCurrentRoute). Check how DrawPage is called and thread the prop through if needed.
+
+Do not remove any existing winner display logic.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #07 -->
+<div class="card h" data-p="h" id="t07">
+<div class="ch" onclick="tog('t07')">
+<div class="cbox" onclick="tick(event,'t07')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#07</span>
+<span class="pbadge ph">VISOKO</span>
+<span class="ftag exists">server.ts</span>
+<span class="ftag">server/auth/middleware.ts</span>
+</div>
+<div class="ctitle">req.hostId nije čitan na join endpoint-u — JWT auth na /api/participants/join je opcionalan ali nije implementiran</div>
+<div class="cdesc">Join endpoint ne poziva <code>requireAuth</code> middleware niti čita JWT iz headera opciono. Zato server ne može da zna ko je ulogovani creator koji pokušava da se prijavi. Task #03 zavisi od ovoga.</div>
+</div>
+<div class="ctog" id="tog-t07">▾</div>
+</div>
+<div class="cbody" id="b-t07">
+<div class="cbin">
+<div class="warn-box">
+<strong>Middleware situacija:</strong> <code>requireAuth</code> middleware postoji ali izbacuje 401 za neautentifikovane korisnike — ne možeš ga staviti na join endpoint jer su gosti dozvoljeni. Treba <strong>opcioni</strong> auth middleware koji čita token ako postoji ali ne blokira ako ne postoji.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Kreirati novi <code>optionalAuth</code> middleware u <code>server/auth/middleware.ts</code> koji čita JWT iz headera ako postoji, setuje <code>req.hostId</code>, ali ne vraća 401 ako nema tokena</span></li>
+<li class="ti"><i class="arr">→</i><span>Primeniti <code>optionalAuth</code> na <code>POST /api/participants/join</code> u server.ts</span></li>
+<li class="ti"><i class="arr ok">✓</i><span>Task #03 (host self-join blokada) onda može da koristi <code>req.hostId</code> koji je postavio <code>optionalAuth</code></span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p07')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p07">Add an optional JWT auth middleware and apply it to the join endpoint so server.ts can detect logged-in hosts on public routes.
+
+EXISTING FILE: server/auth/middleware.ts
+
+The existing requireAuth middleware throws 401 for unauthenticated requests. Add a new optionalAuth middleware below it:
+
+ADD to the end of server/auth/middleware.ts:
+
+import type { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'lootly-dev-secret';
+
+// Optional auth — reads JWT if present, sets req.hostId, but does NOT block unauthenticated requests.
+// Use on public routes that have auth-gated behavior (e.g., blocking host self-join).
+export function optionalAuth(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { hostId: string; email: string };
+      req.hostId = decoded.hostId;
+      req.hostEmail = decoded.email;
+    } catch {
+      // Invalid/expired token — treat as guest, do not block
+    }
+  }
+  next();
+}
+
+Note: req.hostId and req.hostEmail type augmentation is already declared somewhere (used by requireAuth). If not, add to express type augmentation:
+
+declare global {
+  namespace Express {
+    interface Request {
+      hostId?: string;
+      hostEmail?: string;
+    }
+  }
+}
+
+EXISTING FILE: server.ts
+
+Find the import from middleware:
+
+FIND:
+import { requireAuth } from './server/auth/middleware.js';
+
+REPLACE WITH:
+import { requireAuth, optionalAuth } from './server/auth/middleware.js';
+
+Then find the POST /api/participants/join route registration:
+
+FIND:
+  app.post('/api/participants/join', async (req, res) => {
+
+REPLACE WITH:
+  app.post('/api/participants/join', optionalAuth, async (req, res) => {
+
+That is all. The host self-join check in task #03 will now work because req.hostId is set when a JWT is present.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end high sec -->
+
+<!-- ══════════════ MEDIUM ══════════════ -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--yellow);font-size:15px">●</span>
+<span class="sectxt">Srednje — UX polishing</span>
+<span class="seccnt" id="sc-m">2 taskova</span>
+</div>
+
+<!-- #08 -->
+<div class="card m" data-p="m" id="t08">
+<div class="ch" onclick="tog('t08')">
+<div class="cbox" onclick="tick(event,'t08')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#08</span>
+<span class="pbadge pm">SREDNJE</span>
+<span class="ftag exists">src/pages/ArchivePage.tsx</span>
+</div>
+<div class="ctitle">ArchivePage — direktna URL navigacija ne radi ako ne postoji completed giveaway u globalnom state-u</div>
+<div class="cdesc">Ako korisnik direktno unese <code>#/giveaway/slug/archive</code> u URL, <code>App.tsx</code> renderuje <code>ArchivePage</code> sa <code>slug</code> param, ali <code>proofArchiveRoute</code> computed varijabla je <code>null</code> jer giveaways još nije loadovan (async fetch). Nije kritično ali archive se prikazuje OK — problem je što nav dugme treptne kao disabled na kratko.</div>
+</div>
+<div class="ctog" id="tog-t08">▾</div>
+</div>
+<div class="cbody" id="b-t08">
+<div class="cbin">
+<div class="warn-box">
+<strong>Situacija:</strong> ArchivePage ima sopstveni <code>useEffect</code> koji direktno fetcha <code>/api/giveaway/:slug/archive</code> — radi nezavisno od globalnog state-a. Nav dugme samo treptne disabled dok se giveaways ne loaduju. Minor UX issue ali primetno.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U <code>App.tsx</code>: kada je <code>currentRoute</code> arhivska ruta (<code>parts[2] === 'archive'</code>), izvući slug iz URL-a i setovati ga kao fallback za <code>proofArchiveRoute</code> čak i pre nego što se giveaways loaduju</span></li>
+<li class="ti"><i class="arr">→</i><span>Ovo osigurava da nav dugme odmah pokaže aktivan state kad korisnik direktno poseti archive URL</span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p08')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p08">Fix nav archive button flicker on direct URL access in src/App.tsx.
+
+EXISTING FILE: src/App.tsx
+
+Find the proofArchiveRoute computation (after the fix from task #01 is already applied):
+
+FIND:
+  // Public archive: prefer the host's own completed giveaway, fallback to any completed giveaway
+  const anyCompletedGiveaway = giveaways.find((g) => g.status === 'completed');
+  const proofArchiveRoute = completedHostGiveaway
+    ? `/giveaway/${completedHostGiveaway.slug}/archive`
+    : anyCompletedGiveaway
+      ? `/giveaway/${anyCompletedGiveaway.slug}/archive`
+      : null;
+
+REPLACE WITH:
+  // Public archive: prefer host's own completed, fallback to any completed, fallback to current URL slug
+  const anyCompletedGiveaway = giveaways.find((g) => g.status === 'completed');
+  const currentUrlArchiveSlug = (() => {
+    const parts = currentRoute.split('/').filter(Boolean);
+    return parts[0] === 'giveaway' && parts[2] === 'archive' ? parts[1] : null;
+  })();
+  const proofArchiveRoute = completedHostGiveaway
+    ? `/giveaway/${completedHostGiveaway.slug}/archive`
+    : anyCompletedGiveaway
+      ? `/giveaway/${anyCompletedGiveaway.slug}/archive`
+      : currentUrlArchiveSlug
+        ? `/giveaway/${currentUrlArchiveSlug}/archive`
+        : null;
+
+That is all. No other changes needed.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #09 -->
+<div class="card m" data-p="m" id="t09">
+<div class="ch" onclick="tog('t09')">
+<div class="cbox" onclick="tick(event,'t09')"></div>
+<div class="cmeta">
+<div class="ctop">
+<span class="cid">#09</span>
+<span class="pbadge pm">SREDNJE</span>
+<span class="ftag exists">src/components/GiveawayPage.tsx</span>
+</div>
+<div class="ctitle">Participant lista prikazuje unverified i expired prijave — zbunjuje korisnike</div>
+<div class="cdesc">U sekciji "Registered participants" prikazuju se svi participants uključujući one koji su samo ušli username bez verifikacije (verifiedAt === null). Korisnici vide listu koja izgleda veća nego stvarna verifikovana baza.</div>
+</div>
+<div class="ctog" id="tog-t09">▾</div>
+</div>
+<div class="cbody" id="b-t09">
+<div class="cbin">
+<div class="warn-box">
+<strong>Cilj:</strong> Prikazivati samo verifikovane učesnike u participant listi na GiveawayPage-u. Pending prijave ne treba da budu vidljive javno — samo creator može da ih vidi u HostDashboard-u.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U <code>GiveawayPage.tsx</code>, u delu gde se mapira participants lista, filtrirati: <code>participants.filter(p => p.verifiedAt !== null)</code></span></li>
+<li class="ti"><i class="arr">→</i><span>Koristiti filtered listu za count u headeru ("X participants registered") — prikazivati samo verifikovane</span></li>
+<li class="ti"><i class="arr w">!</i><span>Ne menjati <code>participants</code> prop direktno — kreirati lokalnu <code>const verifiedParticipants = participants.filter(p => p.verifiedAt !== null)</code></span></li>
+</ul>
+<div class="psec">
+<div class="phead">
+<span class="plabel">Cursor Prompt — kopiraj i nalepi</span>
+<button class="copybtn" onclick="cp('p09')">⎘ COPY</button>
+</div>
+<div class="ptext" id="p09">Filter participant list to show only verified entries in src/components/GiveawayPage.tsx.
+
+EXISTING FILE: src/components/GiveawayPage.tsx
+
+STEP 1 — Add a derived constant inside the component function, right after the state declarations:
+
+  const verifiedParticipants = participants.filter((p) => p.verifiedAt !== null);
+
+STEP 2 — Find where participants.map() is called to render the participant list (inside "Participants pool" section). Change it to use verifiedParticipants:
+
+FIND:
+              participants.map((p) => (
+
+REPLACE WITH:
+              verifiedParticipants.map((p) => (
+
+STEP 3 — Find where participants.length is used for the "No participants yet" check or count display:
+
+FIND:
+              participants.length === 0 ? (
+
+REPLACE WITH:
+              verifiedParticipants.length === 0 ? (
+
+STEP 4 — Find the registered count text in the header/title area that uses participants.length. Replace with verifiedParticipants.length.
+
+Do not change participants in any other context (e.g., join validation, props). Only the display list uses verifiedParticipants.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end medium sec -->
+
+<!-- DONE SECTION -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--green);font-size:15px">●</span>
+<span class="sectxt">Potvrđeno gotovo iz v4patch.zip</span>
+</div>
+<div class="done-grid">
+<div class="done-item"><div class="done-item-title">✓ JWT Auth + requireAuth middleware</div><div class="done-item-desc">Sve zaštićene rute koriste requireAuth. Token je 7d. Login/register vraćaju token.</div></div>
+<div class="done-item"><div class="done-item-title">✓ Socket.io + GSAP drum roll implementiran</div><div class="done-item-desc">runDrumRoll() funkcija postoji i radi. GSAP timeline sa sequence imenima. confetti na win.</div></div>
+<div class="done-item"><div class="done-item-title">✓ Helmet + rate limiting</div><div class="done-item-desc">Globalni 100 req/15min. authLimiter 10/10min. Trust proxy konfigurisan.</div></div>
+<div class="done-item"><div class="done-item-title">✓ Follow verifikacija — scrapeFollowingList</div><div class="done-item-desc">Puppeteer + RapidAPI fallback. Private profil = disqualify. Sandbox mode skip.</div></div>
+<div class="done-item"><div class="done-item-title">✓ Archive endpoint + stranica</div><div class="done-item-desc">GET /api/giveaway/:slug/archive. SHA256 seed verifikacija. ArchivePage.tsx kompletna.</div></div>
+<div class="done-item"><div class="done-item-title">✓ BullMQ + inline fallback</div><div class="done-item-desc">scrapeQueue radi s Redisom. Inline processing kad Redis nije dostupan.</div></div>
+<div class="done-item"><div class="done-item-title">✓ Referral sistem</div><div class="done-item-desc">ticketCount, referralBonusTickets, ?ref= param, UI badge.</div></div>
+<div class="done-item"><div class="done-item-title">✓ Email (Resend) integracija</div><div class="done-item-desc">sendWinnerEmail(). Graceful skip bez API ključa.</div></div>
+<div class="done-item"><div class="done-item-title">✓ i18n sr/en</div><div class="done-item-desc">LanguageContext, en.ts i sr.ts sa 340+ ključeva. HowItWorksPage, VerifyPage.</div></div>
+<div class="done-item"><div class="done-item-title">✓ serverOffline banner (iz v4)</div><div class="done-item-desc">serverOffline state u App.tsx. Banner na vrhu kad backend ne radi.</div></div>
+</div>
+</div>
+
+<!-- REDOSLED PREPORUKA -->
+<div style="background:var(--bg2);border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:20px 24px;margin-bottom:40px;">
+<div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);margin-bottom:14px;">💡 Preporučeni redosled izvršavanja</div>
+<div style="font-size:12px;color:var(--muted2);line-height:2;">
+<span style="color:var(--cyan);">#07</span> optionalAuth middleware →
+<span style="color:var(--red);">#01</span> Proof Archive public →
+<span style="color:var(--red);">#03</span> Creator self-join block (zavisi od #07) →
+<span style="color:var(--red);">#02</span> Instagram sandbox fix →
+<span style="color:var(--red);">#04</span> Draw animacija drum roll →
+<span style="color:var(--orange);">#05</span> IP limit default →
+<span style="color:var(--orange);">#06</span> Post-draw UX (zavisi od #04) →
+<span style="color:var(--yellow);">#08</span> Archive URL flicker →
+<span style="color:var(--yellow);">#09</span> Filter verified participants
+</div>
+</div>
+
+</div><!-- end wrap -->
+
+<div class="pbar-wrap">
+<span class="pbl">Napredak v5</span>
+<div class="pbbar"><div class="pbfill" id="pbf"></div></div>
+<span class="pbpct" id="pbp">0%</span>
+<span class="pbcnt" id="pbc">0 / 9 završeno</span>
+</div>
+
+<script>
+const TOTAL = 9;
+function tog(id){const b=document.getElementById('b-'+id);const t=document.getElementById('tog-'+id);if(!b)return;b.classList.toggle('open');t.classList.toggle('open');}
+function tick(e,id){e.stopPropagation();const card=document.getElementById(id);const box=card.querySelector('.cbox');const on=box.classList.toggle('ticked');box.textContent=on?'✓':'';card.classList.toggle('done-card',on);save();updateBar();updateCounts();}
+function cp(pid){const el=document.getElementById(pid);if(!el)return;const text=el.textContent.trim();const btns=document.querySelectorAll(`[onclick="cp('${pid}')"]`);navigator.clipboard.writeText(text).then(()=>{btns.forEach(b=>{b.textContent='✓ COPIED!';b.classList.add('ok');});setTimeout(()=>btns.forEach(b=>{b.textContent='⎘ COPY';b.classList.remove('ok');}),2200);}).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});}
+function doFilter(type,btn){document.querySelectorAll('.fbtn').forEach(b=>{b.classList.remove('on','oo','oy','og','oc');});btn.classList.add('on');if(type==='all')btn.classList.add('oc');if(type==='h')btn.classList.add('oo');if(type==='m')btn.classList.add('oy');if(type==='done')btn.classList.add('og');document.querySelectorAll('.card').forEach(card=>{const p=card.dataset.p;const done=card.classList.contains('done-card');if(type==='all'){card.classList.remove('hidden');return;}if(type==='done'){card.classList.toggle('hidden',!done);return;}card.classList.toggle('hidden',p!==type);});}
+function updateBar(){const done=document.querySelectorAll('.cbox.ticked').length;const pct=Math.round((done/TOTAL)*100);document.getElementById('pbf').style.width=pct+'%';document.getElementById('pbp').textContent=pct+'%';document.getElementById('pbc').textContent=done+' / '+TOTAL+' završeno';}
+function updateCounts(){['c','h','m'].forEach(p=>{const cards=document.querySelectorAll(`.card[data-p="${p}"]`);const done=[...cards].filter(c=>c.classList.contains('done-card')).length;const el=document.getElementById('cnt-'+p);if(el)el.textContent=cards.length-done;});document.getElementById('cnt-done').textContent=document.querySelectorAll('.cbox.ticked').length;}
+function save(){const s={};document.querySelectorAll('.card').forEach(c=>{s[c.id]=c.classList.contains('done-card');});try{localStorage.setItem('lootly_v5',JSON.stringify(s));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem('lootly_v5')||'{}');Object.entries(s).forEach(([id,done])=>{if(!done)return;const card=document.getElementById(id);if(!card)return;const box=card.querySelector('.cbox');box.classList.add('ticked');box.textContent='✓';card.classList.add('done-card');});}catch(e){}updateBar();updateCounts();}
+window.addEventListener('load',()=>{load();setTimeout(()=>{document.getElementById('pbf').style.transition='width .8s ease';},200);});
+</script>
+</body>
+</html>

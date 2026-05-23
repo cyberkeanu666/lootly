@@ -359,9 +359,19 @@ export default function App() {
   const completedHostGiveaway = hostGiveaways
     .filter((g) => g.status === 'completed')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+  // Public archive: prefer host's own completed, fallback to any completed, fallback to current URL slug
+  const anyCompletedGiveaway = giveaways.find((g) => g.status === 'completed');
+  const currentUrlArchiveSlug = (() => {
+    const parts = currentRoute.split('/').filter(Boolean);
+    return parts[0] === 'giveaway' && parts[2] === 'archive' ? parts[1] : null;
+  })();
   const proofArchiveRoute = completedHostGiveaway
     ? `/giveaway/${completedHostGiveaway.slug}/archive`
-    : null;
+    : anyCompletedGiveaway
+      ? `/giveaway/${anyCompletedGiveaway.slug}/archive`
+      : currentUrlArchiveSlug
+        ? `/giveaway/${currentUrlArchiveSlug}/archive`
+        : null;
 
   const navBtnBase =
     'px-3 py-2 rounded-xl text-xs font-semibold font-display transition duration-200 flex items-center gap-2';
@@ -527,6 +537,7 @@ export default function App() {
           onVerifyRequest={handleScrapeVerification}
           onSelectRoute={setCurrentRoute}
           referralCode={referralsQueryCode}
+          currentHostId={host?.id}
         />
       );
     }

@@ -66,11 +66,13 @@ export async function scrapeInstagramBioForCode(
   const handle = instagramUsername.replace('@', '').trim().toLowerCase();
 
   if (process.env.SCRAPER_SANDBOX === 'true') {
+    console.log(`[Scraper/sandbox] Simulating bio check for @${handle}, code=${verificationCode}`);
     return {
       success: true,
-      bioText: `[sandbox] LOOTLY verification for @${handle}`,
       codeFound: true,
-      source: 'sandbox',
+      bioText: `[sandbox mode] Simulated bio containing code ${verificationCode}`,
+      source: 'sandbox' as const,
+      error: undefined,
     };
   }
 
