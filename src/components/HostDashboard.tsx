@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Giveaway, HostUser, Participant } from '../data';
-import { Trophy, Plus, Crown, Trash2, BarChart, Calendar, Upload, Users } from 'lucide-react';
+import { Trophy, Plus, Crown, Trash2, BarChart, Calendar, Upload, Users, Copy } from 'lucide-react';
 import { useI18n, slugifyTitle } from '../i18n/LanguageContext';
 import { parseBulkProfiles } from '../utils/parseProfiles';
 import { useLootlyUI } from './LootlyUI';
@@ -43,6 +43,24 @@ export default function HostDashboard({
   const [refBonus, setRefBonus] = useState('1');
   const [errorMessage, setErrorMessage] = useState('');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  const handleCopyLink = async (slug: string) => {
+    const url = `${window.location.origin}/#/giveaway/${slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopiedSlug(slug);
+    setTimeout(() => setCopiedSlug(null), 2000);
+  };
 
   const openCreateModal = () => {
     setErrorMessage('');
@@ -284,7 +302,7 @@ export default function HostDashboard({
               <span className="text-xs text-slate-500 ml-2">running campaigns</span>
             </div>
             <span className="text-[10px] text-slate-500 mt-3 border-t border-slate-800/40 pt-2 block font-sans">
-              {host.plan === 'free' ? 'Cap remaining: 1 active' : 'Unlimited capabilities unlocked'}
+              {host.plan === 'free' ? 'Cap remaining: 3 active' : 'Unlimited capabilities unlocked'}
             </span>
           </div>
 
@@ -473,12 +491,26 @@ export default function HostDashboard({
                 <div className="border-t border-slate-800/80 pt-4 mt-6 flex flex-wrap items-center justify-between gap-3 relative z-10">
                   <div className="flex flex-col">
                     <span className="text-[9px] text-slate-500 font-sans uppercase">Campaign Url</span>
-                    <button
-                      onClick={() => onSelectRoute(`/giveaway/${g.slug}`)}
-                      className="text-amber-500 text-xs font-sans font-bold hover:underline select-all text-left truncate max-w-xs cursor-pointer"
-                    >
-                      lootly.gg/g/{g.slug}
-                    </button>
+                    <div className="flex items-center gap-2 mt-1">
+                      <button
+                        onClick={() => onSelectRoute(`/giveaway/${g.slug}`)}
+                        className="text-amber-500 text-xs font-sans font-bold hover:underline select-all text-left truncate max-w-[180px] cursor-pointer"
+                      >
+                        lootly.gg/g/{g.slug}
+                      </button>
+                      <button
+                        onClick={() => handleCopyLink(g.slug)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition cursor-pointer ${
+                          copiedSlug === g.slug
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border border-slate-700'
+                        }`}
+                        title="Copy giveaway link"
+                      >
+                        <Copy className="h-3 w-3" />
+                        {copiedSlug === g.slug ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1.5">

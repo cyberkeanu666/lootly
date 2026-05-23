@@ -389,10 +389,10 @@ async function startServer() {
       const activeCount = dbData.giveaways.filter(
         (g) => g.hostId === hostId && g.status !== 'completed'
       ).length;
-      if (activeCount >= 1) {
+      if (activeCount >= 3) {
         return res.status(403).json({
           error:
-            'Freemium Limit Exceeded: Free users are capped at 1 active giveaway. Upgrade to Lootly Pro!',
+            'Freemium Limit Exceeded: Free users are capped at 3 active giveaways. Upgrade to Lootly Pro for unlimited campaigns!',
         });
       }
     }

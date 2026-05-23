@@ -283,7 +283,7 @@ const sr: TranslationDict = {
     c1Title: 'Registracija i kontrolna tabla',
     c1Body: 'Kliknite Prijava kreatora (gore desno), registrujte se ili prijavite. Novi nalozi su Free plan.',
     c1Detail:
-      'Free uključuje jednu aktivnu kampanju i bio verifikaciju. Pro (uskoro) uklanja watermark limitacije. Sesija ostaje u browseru.',
+      'Free uključuje tri aktivne kampanje i bio verifikaciju. Pro (uskoro) uklanja watermark limitacije. Sesija ostaje u browseru.',
     c2Title: 'Kreiranje nagradne igre',
     c2Body: 'Tabla → Nova nagradna igra: naslov, nagrada, slug, upload slike, bulk Instagram profili, prilagođeno odbrojavanje.',
     c2Detail:

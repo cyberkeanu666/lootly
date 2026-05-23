@@ -282,7 +282,7 @@ const en: TranslationDict = {
     c1Title: 'Register & open dashboard',
     c1Body: 'Click Creator Log in (top right), register with email/password, or log in. All new accounts start on the Free plan.',
     c1Detail:
-      'Free includes one active campaign and bio verification. Pro upgrade (coming soon) removes watermark limits. Your session stays logged in via browser storage.',
+      'Free includes three active campaigns and bio verification. Pro upgrade (coming soon) removes watermark limits. Your session stays logged in via browser storage.',
     c2Title: 'Create a sweepstakes',
     c2Body: 'Dashboard → New Sweepstakes: title, prize, slug, optional image upload, bulk Instagram profiles, custom draw countdown.',
     c2Detail:

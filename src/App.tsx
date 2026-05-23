@@ -31,6 +31,7 @@ import GiveawayPage from './components/GiveawayPage';
 import DrawPage from './pages/DrawPage';
 import ArchivePage from './pages/ArchivePage';
 import VerifyPage from './pages/VerifyPage';
+import ArchiveLandingPage from './pages/ArchiveLandingPage';
 import EmbedWidget from './components/EmbedWidget';
 import DocumentationPage from './components/DocumentationPage';
 import HowItWorksPage from './components/HowItWorksPage';
@@ -359,19 +360,10 @@ export default function App() {
   const completedHostGiveaway = hostGiveaways
     .filter((g) => g.status === 'completed')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-  // Public archive: prefer host's own completed, fallback to any completed, fallback to current URL slug
   const anyCompletedGiveaway = giveaways.find((g) => g.status === 'completed');
-  const currentUrlArchiveSlug = (() => {
-    const parts = currentRoute.split('/').filter(Boolean);
-    return parts[0] === 'giveaway' && parts[2] === 'archive' ? parts[1] : null;
-  })();
-  const proofArchiveRoute = completedHostGiveaway
-    ? `/giveaway/${completedHostGiveaway.slug}/archive`
-    : anyCompletedGiveaway
-      ? `/giveaway/${anyCompletedGiveaway.slug}/archive`
-      : currentUrlArchiveSlug
-        ? `/giveaway/${currentUrlArchiveSlug}/archive`
-        : null;
+  // Archive nav always goes to the /archive landing page, not to a specific giveaway
+  const proofArchiveRoute = '/archive';
+  const hasAnyArchive = Boolean(completedHostGiveaway || anyCompletedGiveaway);
 
   const navBtnBase =
     'px-3 py-2 rounded-xl text-xs font-semibold font-display transition duration-200 flex items-center gap-2';
@@ -386,6 +378,17 @@ export default function App() {
   const renderPlatformPage = () => {
     const parts = currentRoute.split('/').filter(p => p.length > 0);
     
+    // Loading guard: if we are still fetching initial data and the current route is a giveaway slug,
+    // show a loading state instead of a false "not found" error.
+    if (loading && giveaways.length === 0 && parts[1] && (parts[0] === 'giveaway' || parts[0] === 'embed')) {
+      return (
+        <div className="max-w-4xl mx-auto px-6 py-20 text-center flex flex-col items-center justify-center gap-4">
+          <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
+          <p className="text-xs text-slate-400">Loading giveaway...</p>
+        </div>
+      );
+    }
+    
     // Documentation Blueprint route
     if (currentRoute === '/docs' || currentRoute === '/documentation') {
       return <DocumentationPage />;
@@ -393,6 +396,16 @@ export default function App() {
 
     if (currentRoute === '/guide' || currentRoute === '/how-it-works') {
       return <HowItWorksPage onSelectRoute={setCurrentRoute} />;
+    }
+
+    if (currentRoute === '/archive') {
+      const completedGiveaways = giveaways.filter((g) => g.status === 'completed');
+      return (
+        <ArchiveLandingPage
+          completedGiveaways={completedGiveaways}
+          onSelectRoute={setCurrentRoute}
+        />
+      );
     }
 
     if (currentRoute === '/verify') {
@@ -470,7 +483,7 @@ export default function App() {
       const slugName = parts[1];
 
       if (parts[2] === 'archive') {
-        return <ArchivePage slug={slugName} />;
+        return <ArchivePage slug={slugName} onSelectRoute={setCurrentRoute} />;
       }
 
       const giveawayMatch = giveaways.find(g => g.slug === slugName);
@@ -662,21 +675,13 @@ export default function App() {
 
           <button
             type="button"
-            disabled={!host || !proofArchiveRoute}
-            title={
-              !host
-                ? t('nav.navDisabledLogin')
-                : !proofArchiveRoute
-                  ? t('nav.noCampaignForArchive')
-                  : undefined
-            }
-            onClick={() => proofArchiveRoute && setCurrentRoute(proofArchiveRoute)}
+            disabled={false}
+            title={undefined}
+            onClick={() => setCurrentRoute('/archive')}
             className={`${navBtnBase} ${
-              !host || !proofArchiveRoute
-                ? navBtnDisabled
-                : currentRoute.endsWith('/archive')
-                  ? navBtnActive
-                  : navBtnIdle
+              currentRoute.endsWith('/archive') || currentRoute === '/archive'
+                ? navBtnActive
+                : navBtnIdle
             }`}
           >
             {t('nav.proofArchive')}

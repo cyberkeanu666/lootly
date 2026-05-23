@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lootly — Cursor/Antigravity Task Board v6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Unbounded:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+	--bg:#03050a; --bg2:#080d18; --bg3:#0d1525; --bg4:#121e35;
+	--border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.13);
+	--red:#ff3b3b; --orange:#ff8c00; --yellow:#f5c842;
+	--green:#00e87a; --blue:#3b9eff; --cyan:#00d4ff;
+	--text:#e8edf5; --muted:#4a5568; --muted2:#8899aa;
+	--mono:'JetBrains Mono',monospace; --head:'Unbounded',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.012) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:-250px;left:50%;transform:translateX(-50%);width:1000px;height:600px;background:radial-gradient(ellipse,rgba(0,232,122,0.04) 0%,transparent 65%);pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 24px 100px;}
+
+header{padding:52px 0 44px;border-bottom:1px solid var(--border2);margin-bottom:44px;}
+.hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.logo{font-family:var(--head);font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
+.logo span{color:var(--green);}
+h1{font-family:var(--head);font-size:clamp(26px,4.5vw,44px);font-weight:900;line-height:1.05;letter-spacing:-1px;}
+h1 em{font-style:normal;color:var(--red);}
+.hsub{margin-top:10px;color:var(--muted2);font-size:12px;max-width:520px;line-height:1.9;}
+.hsub strong{color:var(--cyan);}
+
+.stats{display:flex;gap:1px;background:var(--border);border:1px solid var(--border2);border-radius:10px;overflow:hidden;flex-shrink:0;align-self:flex-end;}
+.sbox{padding:14px 22px;background:var(--bg2);text-align:center;min-width:84px;}
+.sn{font-family:var(--head);font-size:20px;font-weight:700;display:block;}
+.sn.r{color:var(--red);} .sn.o{color:var(--orange);} .sn.y{color:var(--yellow);} .sn.g{color:var(--green);}
+.sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;display:block;}
+
+.diag{background:var(--bg2);border:1px solid rgba(255,59,59,0.3);border-radius:12px;padding:20px 24px;margin-bottom:40px;}
+.diag-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--red);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.diag-title::before{content:'⚠';}
+.diag-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start;}
+.diag-row:last-child{border-bottom:none;}
+.diag-label{color:var(--red);min-width:210px;flex-shrink:0;font-weight:700;}
+.diag-val{color:var(--muted2);line-height:1.6;}
+.diag-val code{color:var(--cyan);background:rgba(0,212,255,.07);padding:1px 5px;border-radius:3px;}
+
+.fbar{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;align-items:center;}
+.flabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-right:4px;}
+.fbtn{padding:5px 13px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;}
+.fbtn:hover{color:var(--text);background:var(--bg3);}
+.fbtn.on{background:var(--red);border-color:var(--red);color:#fff;}
+.fbtn.on.oo{background:var(--orange);border-color:var(--orange);}
+.fbtn.on.oy{background:var(--yellow);border-color:var(--yellow);color:#000;}
+.fbtn.on.og{background:var(--green);border-color:var(--green);color:#000;}
+.fbtn.on.oc{background:var(--cyan);border-color:var(--cyan);color:#000;}
+
+.sec{margin-bottom:44px;}
+.sectitle{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.sectxt{font-family:var(--head);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted2);}
+.seccnt{font-size:10px;padding:2px 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,transform .2s;position:relative;}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px;}
+.card.c::before{background:var(--red);}
+.card.h::before{background:var(--orange);}
+.card.m::before{background:var(--yellow);}
+.card:hover{border-color:var(--border2);transform:translateX(2px);}
+.card.done-card{opacity:.4;}
+.card.done-card .ctitle{text-decoration:line-through;color:var(--muted);}
+.hidden{display:none!important;}
+
+.ch{padding:16px 18px 14px 22px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;user-select:none;}
+.cbox{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);flex-shrink:0;margin-top:2px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--bg3);font-weight:700;}
+.cbox:hover{border-color:var(--green);}
+.cbox.ticked{background:var(--green);border-color:var(--green);color:#000;}
+.cmeta{flex:1;}
+.ctop{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.cid{font-size:10px;color:var(--muted);letter-spacing:1px;}
+.pbadge{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;padding:2px 7px;border-radius:4px;font-weight:700;}
+.pc{background:rgba(255,59,59,.14);color:var(--red);border:1px solid rgba(255,59,59,.28);}
+.ph{background:rgba(255,140,0,.14);color:var(--orange);border:1px solid rgba(255,140,0,.28);}
+.pm{background:rgba(245,200,66,.1);color:var(--yellow);border:1px solid rgba(245,200,66,.22);}
+.ftag{font-size:10px;color:var(--cyan);background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.16);padding:2px 7px;border-radius:4px;}
+.ftag.exists{color:#a8c4e0;background:rgba(168,196,224,.06);border-color:rgba(168,196,224,.14);}
+.ctitle{font-family:var(--head);font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4;}
+.cdesc{font-size:12px;color:var(--muted2);line-height:1.6;}
+.ctog{color:var(--muted);font-size:15px;flex-shrink:0;transition:transform .3s;margin-top:3px;}
+.ctog.open{transform:rotate(180deg);}
+
+.cbody{display:none;border-top:1px solid var(--border);background:var(--bg3);}
+.cbody.open{display:block;}
+.cbin{padding:18px 22px;}
+
+.done-box{background:rgba(0,232,122,.04);border:1px solid rgba(0,232,122,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#6ee7b7;line-height:1.8;}
+.done-box strong{color:var(--green);}
+.warn-box{background:rgba(255,140,0,.04);border:1px solid rgba(255,140,0,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffcc80;line-height:1.8;}
+.warn-box strong{color:var(--orange);}
+.bug-box{background:rgba(255,59,59,.04);border:1px solid rgba(255,59,59,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffaaaa;line-height:1.8;}
+.bug-box strong{color:var(--red);}
+
+.todos{list-style:none;margin-bottom:18px;}
+.ti{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted2);align-items:flex-start;}
+.ti:last-child{border-bottom:none;}
+.arr{color:var(--red);flex-shrink:0;margin-top:1px;font-style:normal;}
+.arr.ok{color:var(--green);}
+.arr.w{color:var(--orange);}
+
+.psec{margin-top:18px;border:1px solid rgba(0,212,255,.18);border-radius:10px;overflow:hidden;}
+.phead{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,212,255,.05);border-bottom:1px solid rgba(0,212,255,.13);}
+.plabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);font-weight:700;display:flex;align-items:center;gap:6px;}
+.plabel::before{content:'agy';}
+.copybtn{display:flex;align-items:center;gap:5px;padding:5px 14px;background:var(--cyan);color:#000;border:none;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.copybtn:hover{background:#fff;transform:scale(1.03);}
+.copybtn.ok{background:var(--green);}
+.ptext{padding:14px 16px;font-size:11.5px;color:#a8c4e0;line-height:1.95;white-space:pre-wrap;word-break:break-word;background:var(--bg);max-height:500px;overflow-y:auto;}
+.ptext::-webkit-scrollbar{width:3px;}
+.ptext::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.done-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.done-item{background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:12px 16px;}
+.done-item-title{color:var(--green);font-size:10px;margin-bottom:5px;}
+.done-item-desc{font-size:11px;color:var(--muted2);}
+
+.order-box{background:var(--bg2);border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:20px 24px;margin-bottom:40px;}
+.order-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);margin-bottom:14px;}
+.order-row{font-size:12px;color:var(--muted2);line-height:2.2;}
+.order-row span{display:inline-block;padding:1px 7px;border-radius:4px;margin-right:4px;font-weight:700;}
+.or{background:rgba(255,59,59,.14);color:var(--red);}
+.oh{background:rgba(255,140,0,.14);color:var(--orange);}
+.om{background:rgba(245,200,66,.1);color:var(--yellow);}
+
+.pbar-wrap{position:fixed;bottom:0;left:0;right:0;background:rgba(3,5,10,.96);border-top:1px solid var(--border2);backdrop-filter:blur(20px);padding:11px 24px;display:flex;align-items:center;gap:18px;z-index:100;}
+.pbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);white-space:nowrap;}
+.pbbar{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.pbfill{height:100%;background:linear-gradient(90deg,var(--red),var(--orange),var(--green));border-radius:2px;width:0%;transition:width .7s ease;}
+.pbpct{font-family:var(--head);font-size:12px;color:var(--text);white-space:nowrap;min-width:48px;}
+.pbcnt{font-size:10px;color:var(--muted2);white-space:nowrap;}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+@media(max-width:640px){h1{font-size:24px;}.stats{width:100%;}.done-grid{grid-template-columns:1fr;}.diag-label{min-width:120px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+<div class="hrow">
+<div>
+<div class="logo">Loot<span>ly</span> — Antigravity Task Board <span>v6</span></div>
+<h1>Novi <em>bugovi</em> iz<br>v6zip dijagnoze</h1>
+<p class="hsub">Analiza <strong>v6zip.zip</strong> — 5 novih bugova, tačan root cause za svaki, čisti tekst promptovi za Antigravity agent. Bez emoji u promptovima.</p>
+</div>
+<div class="stats">
+<div class="sbox"><span class="sn r" id="cnt-c">3</span><span class="sl">Kritično</span></div>
+<div class="sbox"><span class="sn o" id="cnt-h">1</span><span class="sl">Visoko</span></div>
+<div class="sbox"><span class="sn y" id="cnt-m">2</span><span class="sl">Srednje</span></div>
+<div class="sbox"><span class="sn g" id="cnt-done">0</span><span class="sl">Gotovo</span></div>
+</div>
+</div>
+</header>
+
+<div class="diag">
+<div class="diag-title">Root cause za sva 4 prijavljena problema</div>
+<div class="diag-row">
+<span class="diag-label">Direktni slug URL baca na pocetnu</span>
+<span class="diag-val">
+	<code>renderPlatformPage()</code> se poziva odmah pri inicijalnom renderu. U tom trenutku <code>giveaways = []</code> jer async <code>fetchGlobalState()</code> jos nije zavrsio. Funkcija trazi <code>giveaways.find(g => g.slug === slugName)</code>, ne nalazi nista, i renderuje "not found" stranicu. Nema loading guard-a na pocetku <code>renderPlatformPage</code>. Fix: dodati <code>if (loading && giveaways.length === 0)</code> check koji prikazuje spinner umesto not-found-a.
+</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">Proof Archive — random giveaway</span>
+<span class="diag-val">
+	Nav dugme vodi na <code>proofArchiveRoute</code> koja je <code>anyCompletedGiveaway</code> — tj. prvi completed giveaway u listi (slucajno NVIDIA, ili koji god bude prvi). Kada user klikne nav dugme, ocekuje stranicu gde bira koji giveaway da istrazi. Treba: nav dugme vodi na <code>/archive</code> landing koji prikazuje search/input za slug, ne direktno na tudjin giveaway.
+</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">Nema Copy Link dugmeta u dashboardu</span>
+<span class="diag-val">
+	U <code>HostDashboard.tsx</code> postoji clickable tekst <code>lootly.gg/g/{slug}</code> koji poziva <code>onSelectRoute</code> — navigira, ali ne kopira. Nema clipboard dugme pored njega. Treba dodati <code>Copy</code> dugme koje kopira <code>window.location.origin + '/#/giveaway/' + g.slug</code> u clipboard.
+</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">Free plan limit = 1, treba biti 3</span>
+<span class="diag-val">
+	U <code>server.ts ~line 392</code>: <code>activeCount >= 1</code> — hard-coded na 1. Treba biti 3. Uz to, uslov filtrira <code>status !== 'completed'</code>, sto znaci deleted giveaways ne smanjuju broj (oni se brisu iz baze). Logika je ispravna za deleted ali limit treba biti 3.
+</span>
+</div>
+</div>
+
+<div class="fbar">
+<span class="flabel">Filter:</span>
+<button class="fbtn on oc" onclick="doFilter('all',this)">Sve</button>
+<button class="fbtn" onclick="doFilter('c',this)">Kriticno</button>
+<button class="fbtn" onclick="doFilter('h',this)">Visoko</button>
+<button class="fbtn" onclick="doFilter('m',this)">Srednje</button>
+<button class="fbtn" onclick="doFilter('done',this)">Gotovo</button>
+</div>
+
+<!-- CRITICAL -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--red);font-size:15px">●</span>
+<span class="sectxt">Kriticno</span>
+<span class="seccnt" id="sc-c">3 taskova</span>
+</div>
+
+<!-- #01 -->
+<div class="card c" data-p="c" id="t01">
+<div class="ch" onclick="tog('t01')">
+<div class="cbox" onclick="tick(event,'t01')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#01</span><span class="pbadge pc">KRITICNO</span><span class="ftag exists">src/App.tsx</span></div>
+<div class="ctitle">Direktni slug URL baca na "not found" umesto da priceka fetch</div>
+<div class="cdesc">Korisnik poseti /#/giveaway/moj-giveaway direktno, vidis "not found" gresku jer giveaways = [] dok fetch nije gotov. Loading guard ne postoji na pocetku renderPlatformPage.</div>
+</div>
+<div class="ctog" id="tog-t01">▾</div>
+</div>
+<div class="cbody" id="b-t01">
+<div class="cbin">
+<div class="bug-box">
+<strong>Root cause:</strong> renderPlatformPage() se poziva sinkrono pri prvom renderu. giveaways state je [] jer fetchGlobalState() je async. Funkcija ne ceka, odmah trazi slug u praznom nizu i renderuje error stranicu. Korisnik vidi gresku i odlazi.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Na pocetku renderPlatformPage, pre svih route provera: ako loading === true I giveaways.length === 0 I ruta je slug ruta, prikazati loading spinner umesto greske</span></li>
+<li class="ti"><i class="arr">→</i><span>Spinner treba biti minimal: loading ikonica + "Loading giveaway..." tekst + back dugme</span></li>
+<li class="ti"><i class="arr w">!</i><span>Ne dodavati guard za rute koje ne zavise od giveaways (/docs, /guide, /dashboard) — one rade i bez fetcha</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p01')">COPY</button></div>
+<div class="ptext" id="p01">Fix direct URL navigation in src/App.tsx — when a user visits a giveaway slug URL directly, the giveaways array is empty during initial load, causing a false "not found" render.
+
+EXISTING FILE: src/App.tsx
+
+STEP 1 — Find the renderPlatformPage function opening:
+
+FIND:
+  const renderPlatformPage = () => {
+    const parts = currentRoute.split('/').filter(p => p.length > 0);
+
+ADD immediately after that line, before any route checks:
+
+    // Loading guard: if we are still fetching initial data and the current route is a giveaway slug,
+    // show a loading state instead of a false "not found" error.
+    if (loading && giveaways.length === 0 && parts[0] === 'giveaway' && parts[1]) {
+      return (
+        <div className="py-32 flex flex-col items-center justify-center gap-4">
+          <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
+          <p className="text-sm text-slate-400 font-mono">Loading giveaway...</p>
+        </div>
+      );
+    }
+
+STEP 2 — Verify that RefreshCw is already imported at the top of App.tsx from lucide-react. It should already be present. If it is not, add it to the existing lucide-react import line.
+
+That is the only change. Do not modify any other logic in renderPlatformPage.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #02 -->
+<div class="card c" data-p="c" id="t02">
+<div class="ch" onclick="tog('t02')">
+<div class="cbox" onclick="tick(event,'t02')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#02</span><span class="pbadge pc">KRITICNO</span><span class="ftag exists">src/App.tsx</span><span class="ftag exists">src/pages/ArchivePage.tsx</span></div>
+<div class="ctitle">Proof Archive nav dugme vodi na random tudjin giveaway — treba landing sa pretragom po slugu</div>
+<div class="cdesc">Nav dugme Proof Archive vodi direktno na proofArchiveRoute = prvi completed giveaway u bazi (slucajno NVIDIA ili ko god). Korisnik vidi tudjin giveaway. Ispravno ponasanje: dugme vodi na /archive landing stranicu sa input poljem za slug/ID pretrage.</div>
+</div>
+<div class="ctog" id="tog-t02">▾</div>
+</div>
+<div class="cbody" id="b-t02">
+<div class="cbin">
+<div class="bug-box">
+<strong>Problem u App.tsx:</strong> proofArchiveRoute se setuje na anyCompletedGiveaway?.slug i nav dugme direktno navigira tamo. Nema posredne stranice gde korisnik bira koji giveaway.
+</div>
+<div class="warn-box">
+<strong>Planirani flow:</strong> Klik na "Proof Archive" u nav-u vodi na /archive. Ta stranica prikazuje: (1) input polje "Enter giveaway slug or ID", (2) search dugme koje navigira na /giveaway/[slug]/archive, (3) opciono: lista svih completed giveaway-a kao linkovi.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U App.tsx: proofArchiveRoute = '/archive' (fiksna ruta, bez slug-a)</span></li>
+<li class="ti"><i class="arr">→</i><span>Nav dugme disabled samo ako nema nijednog completed giveaway-a (keep existing logic ali samo za disabled state, ne za slug)</span></li>
+<li class="ti"><i class="arr">→</i><span>Dodati route handler za '/archive' u renderPlatformPage koji renderuje novi ArchiveLandingPage komponent</span></li>
+<li class="ti"><i class="arr">→</i><span>Kreirati ArchiveLandingPage.tsx: input za slug, dugme za search, lista completed giveaway-a ispod</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p02')">COPY</button></div>
+<div class="ptext" id="p02">Create an Archive Landing Page that replaces the direct archive navigation. Currently the Proof Archive nav button navigates directly to a random completed giveaway. Fix this with a proper search/lookup page.
+
+PART 1 — Create new file src/pages/ArchiveLandingPage.tsx
+
+This component receives:
+- completedGiveaways: Giveaway[] — list of all completed giveaways from global state
+- onSelectRoute: (route: string) => void — navigation handler
+
+The component renders:
+- A heading: "Proof Archive"
+- A subheading: "Verify any giveaway draw — provably fair, permanently recorded."
+- An input field with placeholder: "Enter giveaway slug (e.g. nike-giveaway-2026)"
+- A "View Archive" button that calls onSelectRoute('/giveaway/' + inputValue.trim() + '/archive') when clicked or Enter pressed
+- Below the input: if completedGiveaways.length > 0, show a list of all completed giveaways as clickable rows. Each row shows: giveaway title, slug, drawDate formatted as date string, and a "View" button that navigates to /giveaway/[slug]/archive
+- If completedGiveaways.length === 0, show a message: "No completed giveaways yet."
+- Styling: use the existing dark Tailwind theme consistent with the rest of the app (bg-[#090f1d], border-slate-800, text-amber-500 for accents, font-mono for slug display)
+
+Export as default.
+
+PART 2 — Modify src/App.tsx
+
+Add ArchiveLandingPage to imports at the top:
+import ArchiveLandingPage from './pages/ArchiveLandingPage';
+
+Find the proofArchiveRoute computation:
+
+FIND:
+  const anyCompletedGiveaway = giveaways.find((g) => g.status === 'completed');
+  const currentUrlArchiveSlug = (() => {
+    const parts = currentRoute.split('/').filter(Boolean);
+    return parts[0] === 'giveaway' && parts[2] === 'archive' ? parts[1] : null;
+  })();
+  const proofArchiveRoute = completedHostGiveaway
+    ? `/giveaway/${completedHostGiveaway.slug}/archive`
+    : anyCompletedGiveaway
+      ? `/giveaway/${anyCompletedGiveaway.slug}/archive`
+      : currentUrlArchiveSlug
+        ? `/giveaway/${currentUrlArchiveSlug}/archive`
+        : null;
+
+REPLACE WITH:
+  const anyCompletedGiveaway = giveaways.find((g) => g.status === 'completed');
+  // Archive nav always goes to the /archive landing page, not to a specific giveaway
+  const proofArchiveRoute = '/archive';
+  const hasAnyArchive = Boolean(completedHostGiveaway || anyCompletedGiveaway);
+
+Then find the Proof Archive nav button and update the disabled condition:
+
+FIND:
+            disabled={!proofArchiveRoute}
+            title={
+              !proofArchiveRoute
+                ? t('nav.noCampaignForArchive')
+                : undefined
+            }
+
+REPLACE WITH:
+            disabled={false}
+            title={undefined}
+
+Then find the nav button className that uses !proofArchiveRoute as disabled check and simplify it to always use navBtnIdle or navBtnActive based on current route only.
+
+Then inside renderPlatformPage, find the parts-based routing and add a new route for '/archive':
+
+FIND (the section near top of renderPlatformPage that handles routes like /docs, /guide):
+    if (currentRoute === '/guide' || currentRoute === '/how-it-works') {
+      return <HowItWorksPage onSelectRoute={setCurrentRoute} />;
+    }
+
+ADD after it:
+    if (currentRoute === '/archive') {
+      const completedGiveaways = giveaways.filter((g) => g.status === 'completed');
+      return (
+        <ArchiveLandingPage
+          completedGiveaways={completedGiveaways}
+          onSelectRoute={setCurrentRoute}
+        />
+      );
+    }
+
+Do not modify ArchivePage.tsx (the per-giveaway page). Only create ArchiveLandingPage.tsx and update App.tsx routing and nav button.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #03 -->
+<div class="card c" data-p="c" id="t03">
+<div class="ch" onclick="tog('t03')">
+<div class="cbox" onclick="tick(event,'t03')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#03</span><span class="pbadge pc">KRITICNO</span><span class="ftag exists">server.ts</span></div>
+<div class="ctitle">Free plan limit = 1 giveaway umesto 3 — hard-coded na pogresnu vrednost</div>
+<div class="cdesc">activeCount >= 1 u server.ts znaci da Free korisnik ne moze napraviti drugi giveaway cak i ako obrisi prethodni. Limit treba biti 3 aktivnih (ne-completed) giveaway-a. Deleted giveaway-i se uklanjaju iz baze tako da logika sa statusom je OK, samo treba promeniti 1 na 3.</div>
+</div>
+<div class="ctog" id="tog-t03">▾</div>
+</div>
+<div class="cbody" id="b-t03">
+<div class="cbin">
+<div class="bug-box">
+<strong>Trenutni kod (server.ts ~line 388-396):</strong>
+if (host.plan === 'free') {
+  const activeCount = dbData.giveaways.filter(
+    (g) => g.hostId === hostId && g.status !== 'completed'
+  ).length;
+  if (activeCount >= 1) {   // ← ovo je pogresno, treba biti 3
+    return res.status(403)...
+  }
+}
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Promeniti activeCount >= 1 na activeCount >= 3 u server.ts</span></li>
+<li class="ti"><i class="arr">→</i><span>Azurirati error poruku: umesto "capped at 1" pisati "capped at 3"</span></li>
+<li class="ti"><i class="arr">→</i><span>U HostDashboard.tsx pronaci prikaz limita (progress bar ili tekst koji kaze "1/1") i promeniti na 3</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p03')">COPY</button></div>
+<div class="ptext" id="p03">Change the free plan giveaway limit from 1 to 3 in server.ts and update any UI that displays this limit.
+
+EXISTING FILE: server.ts
+
+FIND:
+      if (activeCount >= 1) {
+        return res.status(403).json({
+          error:
+            'Freemium Limit Exceeded: Free users are capped at 1 active giveaway. Upgrade to Lootly Pro!',
+        });
+      }
+
+REPLACE WITH:
+      if (activeCount >= 3) {
+        return res.status(403).json({
+          error:
+            'Freemium Limit Exceeded: Free users are capped at 3 active giveaways. Upgrade to Lootly Pro for unlimited campaigns!',
+        });
+      }
+
+EXISTING FILE: src/components/HostDashboard.tsx
+
+Search for any text or variable that references the number 1 in the context of free plan limits, such as "1 active giveaway", "1/1", "free.*limit.*1", or a freemium cap check. Change all occurrences of that limit number from 1 to 3.
+
+Also search for any progress bar calculation that divides by 1 for the free tier cap. For example, if there is something like:
+  const freeCap = 1;
+or
+  {hostGiveaways.length} / 1
+change those to use 3 instead of 1.
+
+Do not change anything else.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end critical sec -->
+
+<!-- HIGH -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--orange);font-size:15px">●</span>
+<span class="sectxt">Visoko</span>
+<span class="seccnt" id="sc-h">1 task</span>
+</div>
+
+<!-- #04 -->
+<div class="card h" data-p="h" id="t04">
+<div class="ch" onclick="tog('t04')">
+<div class="cbox" onclick="tick(event,'t04')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#04</span><span class="pbadge ph">VISOKO</span><span class="ftag exists">src/components/HostDashboard.tsx</span></div>
+<div class="ctitle">Nema Copy Link dugmeta pored giveaway-a u dashboardu</div>
+<div class="cdesc">Klikom na lootly.gg/g/{slug} tekst u kartici giveaway-a navigira se unutar app-a umesto da kopira pravi URL u clipboard. Kreatorima treba "Copy link" dugme koje kopira https://[origin]/#/giveaway/[slug] za deljenje.</div>
+</div>
+<div class="ctog" id="tog-t04">▾</div>
+</div>
+<div class="cbody" id="b-t04">
+<div class="cbin">
+<div class="warn-box">
+<strong>Trenutni kod u HostDashboard.tsx (~line 477-480):</strong>
+button onClick={() => onSelectRoute('/giveaway/' + g.slug)}
+  lootly.gg/g/{g.slug}
+Klik navigira umesto da kopira. Treba dodati posebno Copy dugme sa clipboard API-jem.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Dodati useState copiedSlug (string | null) za pracenje koji slug je upravo kopiran</span></li>
+<li class="ti"><i class="arr">→</i><span>Dodati Copy dugme pored URL teksta sa ikonom Copy iz lucide-react</span></li>
+<li class="ti"><i class="arr">→</i><span>Copy dugme poziva navigator.clipboard.writeText(window.location.origin + '/#/giveaway/' + g.slug)</span></li>
+<li class="ti"><i class="arr">→</i><span>Nakon kopiranja: dugme menja tekst/ikonu u "Copied!" na 2 sekunde, zatim se vraca</span></li>
+<li class="ti"><i class="arr ok">ok</i><span>Postojeci clickable URL tekst moze ostati kao navigacija — Copy dugme je dodatno</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p04')">COPY</button></div>
+<div class="ptext" id="p04">Add a copy-to-clipboard button next to each giveaway URL in the host dashboard.
+
+EXISTING FILE: src/components/HostDashboard.tsx
+
+STEP 1 — Add a state variable for tracking which slug was just copied. Add this inside the HostDashboard component function, near the other useState declarations:
+
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+STEP 2 — Add a handler function inside the component:
+
+  const handleCopyLink = async (slug: string) => {
+    const url = `${window.location.origin}/#/giveaway/${slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopiedSlug(slug);
+    setTimeout(() => setCopiedSlug(null), 2000);
+  };
+
+STEP 3 — Find the Campaign Url section inside the giveaway card (around line 472-481):
+
+FIND:
+                  <div className="flex flex-col">
+                    <span className="text-[9px] text-slate-500 font-sans uppercase">Campaign Url</span>
+                    <button
+                      onClick={() => onSelectRoute(`/giveaway/${g.slug}`)}
+                      className="text-amber-500 text-xs font-sans font-bold hover:underline select-all text-left truncate max-w-xs cursor-pointer"
+                    >
+                      lootly.gg/g/{g.slug}
+                    </button>
+                  </div>
+
+REPLACE WITH:
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] text-slate-500 font-sans uppercase">Campaign Url</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onSelectRoute(`/giveaway/${g.slug}`)}
+                        className="text-amber-500 text-xs font-sans font-bold hover:underline select-all text-left truncate max-w-[180px] cursor-pointer"
+                      >
+                        lootly.gg/g/{g.slug}
+                      </button>
+                      <button
+                        onClick={() => handleCopyLink(g.slug)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition cursor-pointer ${
+                          copiedSlug === g.slug
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border border-slate-700'
+                        }`}
+                        title="Copy giveaway link"
+                      >
+                        <Copy className="h-3 w-3" />
+                        {copiedSlug === g.slug ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+
+STEP 4 — Make sure Copy is imported from lucide-react at the top of the file. Find the existing lucide-react import and add Copy to it if it is not already there.
+
+Do not change any other parts of the dashboard.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end high sec -->
+
+<!-- MEDIUM -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--yellow);font-size:15px">●</span>
+<span class="sectxt">Srednje</span>
+<span class="seccnt" id="sc-m">2 taskova</span>
+</div>
+
+<!-- #05 -->
+<div class="card m" data-p="m" id="t05">
+<div class="ch" onclick="tog('t05')">
+<div class="cbox" onclick="tick(event,'t05')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#05</span><span class="pbadge pm">SREDNJE</span><span class="ftag exists">src/App.tsx</span></div>
+<div class="ctitle">Isti loading problem kao #01 ali za embed i draw rute — ne samo /giveaway/slug</div>
+<div class="cdesc">Isti loading race condition postoji i za /embed/slug i za /giveaway/slug/draw rute. Ako korisnik direktno poseti te URL-ove, giveaways je prazan i render ide na fallback/error. Treba prosirien guard koji pokriva sve slug-zavisne rute.</div>
+</div>
+<div class="ctog" id="tog-t05">▾</div>
+</div>
+<div class="cbody" id="b-t05">
+<div class="cbin">
+<div class="warn-box">
+<strong>Ovo je prosirenje task-a #01.</strong> Radi ga tek kad #01 bude gotov. Isti fix ali za sire uslove.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Prosiriti loading guard iz #01: umesto samo parts[0] === 'giveaway', pokriti i parts[0] === 'embed'</span></li>
+<li class="ti"><i class="arr">→</i><span>Za draw rutu (/giveaway/slug/draw): DrawPage vec fetchuje giveaway samostalno, ali App.tsx ga ne renderuje ako giveawayMatch nije nadjen u praznom nizu — isti fix</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p05')">COPY</button></div>
+<div class="ptext" id="p05">Extend the loading guard from task 01 to cover embed and draw routes too.
+
+PREREQUISITE: Task 01 must already be applied.
+
+EXISTING FILE: src/App.tsx
+
+Find the loading guard added in task 01:
+
+FIND:
+    if (loading && giveaways.length === 0 && parts[0] === 'giveaway' && parts[1]) {
+
+REPLACE WITH:
+    if (loading && giveaways.length === 0 && parts[1] && (parts[0] === 'giveaway' || parts[0] === 'embed')) {
+
+That single line change extends the guard to cover /embed/slug routes as well.
+
+No other changes needed.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #06 -->
+<div class="card m" data-p="m" id="t06">
+<div class="ch" onclick="tog('t06')">
+<div class="cbox" onclick="tick(event,'t06')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#06</span><span class="pbadge pm">SREDNJE</span><span class="ftag exists">src/pages/ArchivePage.tsx</span></div>
+<div class="ctitle">ArchivePage ne prikazuje nicim da se slug moze promeniti — nema "search different giveaway" opciju</div>
+<div class="cdesc">Kada korisnik jednom otvori /giveaway/nvidia-giveaway/archive, nema UI elemenata koji mu omogucavaju da trazi drugi giveaway bez da rucno menja URL. Treba dodati search link ili back dugme ka /archive landing stranici.</div>
+</div>
+<div class="ctog" id="tog-t06">▾</div>
+</div>
+<div class="cbody" id="b-t06">
+<div class="cbin">
+<div class="warn-box">
+<strong>Ovo zavisi od task-a #02</strong> — /archive landing mora postojati pre ovoga.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>U ArchivePage.tsx: dodati "Search other giveaway" link/dugme koje poziva onSelectRoute('/archive') — ili ako onSelectRoute nije dostupan, koristi window.location.hash = '#/archive'</span></li>
+<li class="ti"><i class="arr">→</i><span>Dugme staviti u header sekiju archive stranice, diskretno (ne prominentno)</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p06')">COPY</button></div>
+<div class="ptext" id="p06">Add a "Search other giveaway" navigation option to ArchivePage.
+
+PREREQUISITE: Task 02 must already be applied (ArchiveLandingPage at /archive must exist).
+
+EXISTING FILE: src/pages/ArchivePage.tsx
+
+STEP 1 — Check if ArchivePage already receives onSelectRoute as a prop. Look at the ArchivePageProps interface and the component signature.
+
+If onSelectRoute is not in the props, add it:
+
+FIND the ArchivePageProps interface:
+interface ArchivePageProps {
+  slug: string;
+}
+
+REPLACE WITH:
+interface ArchivePageProps {
+  slug: string;
+  onSelectRoute?: (route: string) => void;
+}
+
+And update the component function signature to destructure it:
+export default function ArchivePage({ slug, onSelectRoute }: ArchivePageProps)
+
+STEP 2 — Check how ArchivePage is rendered in App.tsx (line around 472):
+  return <ArchivePage slug={slugName} />;
+
+If onSelectRoute is not passed, update it to:
+  return <ArchivePage slug={slugName} onSelectRoute={setCurrentRoute} />;
+
+STEP 3 — In ArchivePage.tsx, find the top of the rendered output (the main container or the first heading section). Add a subtle back/search button at the top:
+
+FIND the main return JSX opening container, something like:
+  return (
+    <div className="...">
+
+ADD as the very first child inside that container:
+
+      <div className="mb-6 flex items-center gap-3">
+        <button
+          onClick={() => {
+            if (onSelectRoute) {
+              onSelectRoute('/archive');
+            } else {
+              window.location.hash = '#/archive';
+            }
+          }}
+          className="text-xs text-slate-500 hover:text-slate-300 font-mono transition flex items-center gap-1 cursor-pointer"
+        >
+          &larr; Search other giveaway
+        </button>
+        <span className="text-slate-800 text-xs">|</span>
+        <span className="text-xs text-slate-600 font-mono">{slug}</span>
+      </div>
+
+Do not change any other part of ArchivePage.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end medium sec -->
+
+<!-- DONE -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--green);font-size:15px">●</span>
+<span class="sectxt">Potvrdjeno gotovo iz v6zip</span>
+</div>
+<div class="done-grid">
+<div class="done-item"><div class="done-item-title">optionalAuth middleware dodat</div><div class="done-item-desc">server/auth/middleware.ts ima optionalAuth export. Join endpoint ga koristi.</div></div>
+<div class="done-item"><div class="done-item-title">Creator self-join blokada (frontend)</div><div class="done-item-desc">GiveawayPage prima currentHostId prop i prikazuje "you are the host" poruku.</div></div>
+<div class="done-item"><div class="done-item-title">Instagram sandbox fix</div><div class="done-item-desc">instagramBio.ts sandbox blok vraca codeFound: true direktno.</div></div>
+<div class="done-item"><div class="done-item-title">Draw animacija drum roll okacena na event</div><div class="done-item-desc">draw:winner_drawn handler poziva runDrumRoll pre setStage.</div></div>
+<div class="done-item"><div class="done-item-title">showDrawAgain delay state</div><div class="done-item-desc">DrawPage.tsx ima showDrawAgain state sa 6s setTimeout.</div></div>
+<div class="done-item"><div class="done-item-title">serverOffline banner</div><div class="done-item-desc">App.tsx prati serverOffline state i prikazuje top banner.</div></div>
+</div>
+</div>
+
+<!-- REDOSLED -->
+<div class="order-box">
+<div class="order-title">Preporuceni redosled izvrsavanja</div>
+<div class="order-row">
+<span class="or">#01</span> Loading guard za slug URL
+<br>
+<span class="or">#03</span> Free plan limit 1 na 3
+<br>
+<span class="oh">#04</span> Copy link dugme u dashboardu
+<br>
+<span class="or">#02</span> Archive landing stranica (zavisi od #01 jer isti fajl)
+<br>
+<span class="om">#05</span> Prosireni loading guard za embed/draw
+<br>
+<span class="om">#06</span> Back link u ArchivePage (zavisi od #02)
+</div>
+</div>
+
+</div><!-- end wrap -->
+
+<div class="pbar-wrap">
+<span class="pbl">Napredak v6</span>
+<div class="pbbar"><div class="pbfill" id="pbf"></div></div>
+<span class="pbpct" id="pbp">0%</span>
+<span class="pbcnt" id="pbc">0 / 6 zavrseno</span>
+</div>
+
+<script>
+const TOTAL = 6;
+function tog(id){const b=document.getElementById('b-'+id);const t=document.getElementById('tog-'+id);if(!b)return;b.classList.toggle('open');t.classList.toggle('open');}
+function tick(e,id){e.stopPropagation();const card=document.getElementById(id);const box=card.querySelector('.cbox');const on=box.classList.toggle('ticked');box.textContent=on?'v':'';card.classList.toggle('done-card',on);save();updateBar();updateCounts();}
+function cp(pid){const el=document.getElementById(pid);if(!el)return;const text=el.textContent.trim();const btns=document.querySelectorAll('[onclick="cp(\''+pid+'\')"]');navigator.clipboard.writeText(text).then(()=>{btns.forEach(b=>{b.textContent='COPIED!';b.classList.add('ok');});setTimeout(()=>btns.forEach(b=>{b.textContent='COPY';b.classList.remove('ok');}),2200);}).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});}
+function doFilter(type,btn){document.querySelectorAll('.fbtn').forEach(b=>{b.classList.remove('on','oo','oy','og','oc');});btn.classList.add('on');if(type==='all')btn.classList.add('oc');if(type==='h')btn.classList.add('oo');if(type==='m')btn.classList.add('oy');if(type==='done')btn.classList.add('og');document.querySelectorAll('.card').forEach(card=>{const p=card.dataset.p;const done=card.classList.contains('done-card');if(type==='all'){card.classList.remove('hidden');return;}if(type==='done'){card.classList.toggle('hidden',!done);return;}card.classList.toggle('hidden',p!==type);});}
+function updateBar(){const done=document.querySelectorAll('.cbox.ticked').length;const pct=Math.round((done/TOTAL)*100);document.getElementById('pbf').style.width=pct+'%';document.getElementById('pbp').textContent=pct+'%';document.getElementById('pbc').textContent=done+' / '+TOTAL+' zavrseno';}
+function updateCounts(){['c','h','m'].forEach(p=>{const cards=document.querySelectorAll('.card[data-p="'+p+'"]');const done=[...cards].filter(c=>c.classList.contains('done-card')).length;const el=document.getElementById('cnt-'+p);if(el)el.textContent=cards.length-done;});document.getElementById('cnt-done').textContent=document.querySelectorAll('.cbox.ticked').length;}
+function save(){const s={};document.querySelectorAll('.card').forEach(c=>{s[c.id]=c.classList.contains('done-card');});try{localStorage.setItem('lootly_v6',JSON.stringify(s));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem('lootly_v6')||'{}');Object.entries(s).forEach(([id,done])=>{if(!done)return;const card=document.getElementById(id);if(!card)return;const box=card.querySelector('.cbox');box.classList.add('ticked');box.textContent='v';card.classList.add('done-card');});}catch(e){}updateBar();updateCounts();}
+window.addEventListener('load',()=>{load();setTimeout(()=>{document.getElementById('pbf').style.transition='width .8s ease';},200);});
+</script>
+</body>
+</html>

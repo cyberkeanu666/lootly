@@ -119,7 +119,7 @@ export default function LandingPage({
                 <div className="text-3xl font-extrabold text-white mb-6 font-display">$0 <span className="text-xs font-normal text-slate-500">/ forever</span></div>
                 
                 <ul className="flex flex-col gap-3 text-xs text-slate-400 mb-8 border-t border-slate-800/80 pt-6">
-                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" /> 1 concurrent active giveaway</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" /> 3 concurrent active giveaways</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" /> Max 500 entry size cap</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" /> Bio signature verifications</li>
                   <li className="flex items-center gap-2 text-slate-600">✓ "Powered by Lootly" Watermark</li>

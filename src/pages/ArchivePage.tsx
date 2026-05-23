@@ -44,9 +44,10 @@ interface ArchiveData {
 
 interface ArchivePageProps {
   slug: string;
+  onSelectRoute?: (route: string) => void;
 }
 
-export default function ArchivePage({ slug }: ArchivePageProps) {
+export default function ArchivePage({ slug, onSelectRoute }: ArchivePageProps) {
   const { showToast } = useLootlyUI();
   const [data, setData] = useState<ArchiveData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,6 +148,22 @@ export default function ArchivePage({ slug }: ArchivePageProps) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+      <div className="flex items-center gap-2 mb-6">
+        <button
+          onClick={() => {
+            if (onSelectRoute) {
+              onSelectRoute('/archive');
+            } else {
+              window.location.hash = '#/archive';
+            }
+          }}
+          className="text-xs text-slate-500 hover:text-slate-300 font-mono transition flex items-center gap-1 cursor-pointer"
+        >
+          ← Search other giveaway
+        </button>
+        <span className="text-slate-700 font-mono text-xs">|</span>
+        <span className="text-xs text-slate-500 font-mono">{slug}</span>
+      </div>
       <article className="relative bg-[#090f1d] border-2 border-amber-500/25 rounded-3xl shadow-2xl shadow-black/40 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(245,158,11,0.06),_transparent_55%)] pointer-events-none" />
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
