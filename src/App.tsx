@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Trophy, 
-  ShieldCheck, 
-  Gauge, 
-  ChevronRight, 
-  Share2, 
-  ArrowLeft, 
-  User, 
-  RefreshCw, 
-  Lock, 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Trophy,
+  ShieldCheck,
+  Gauge,
+  ChevronRight,
+  Share2,
+  ArrowLeft,
+  User,
+  RefreshCw,
+  Lock,
   HelpCircle,
   Eye,
   Settings,
@@ -16,7 +16,9 @@ import {
   LogOut,
   AlertTriangle,
   BookOpen,
-  Globe
+  Facebook,
+  Instagram,
+  MessageCircle
 } from 'lucide-react';
 
 // Import Types
@@ -72,6 +74,8 @@ export default function App() {
     open: false,
     mode: 'login',
   });
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
 
   // Synchronise navigation hashes
   useEffect(() => {
@@ -86,6 +90,18 @@ export default function App() {
       setReferralsQueryCode(ref);
     }
   }, []);
+
+  // Close language dropdown when clicking outside
+  useEffect(() => {
+    if (!langOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [langOpen]);
 
   // Fetch all state from full-stack Express server endpoints
   const fetchGlobalState = async () => {
@@ -719,23 +735,40 @@ export default function App() {
               onNavigate={setCurrentRoute}
             />
           )}
-          <div className="flex items-center gap-1 bg-[#0a0f1d]/75 border border-slate-800/80 rounded-xl p-1">
-            <Globe className="h-3.5 w-3.5 text-slate-500 ml-1.5" aria-hidden />
-            {(['en', 'sr'] as Locale[]).map((code) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => setLocale(code)}
-                className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition cursor-pointer ${
-                  locale === code
-                    ? 'bg-amber-500 text-slate-950'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title={t(`lang.${code}`)}
-              >
-                {code}
-              </button>
-            ))}
+          <div className="relative" ref={langRef}>
+            <button
+              type="button"
+              onClick={() => setLangOpen((v) => !v)}
+              className="relative p-2 rounded-xl border border-slate-800/80 bg-[#0a0f1d]/75 hover:text-slate-200 hover:border-slate-700 transition cursor-pointer flex items-center justify-center"
+              title="Language"
+            >
+              <img
+                src={locale === 'en'
+                  ? 'https://flagcdn.com/gb.svg'
+                  : 'https://flagcdn.com/rs.svg'
+                }
+                alt={locale === 'en' ? 'English' : 'Srpski'}
+                style={{ width: '1rem', height: '1rem', objectFit: 'cover', borderRadius: '3px', display: 'block' }}
+              />
+            </button>
+            {langOpen && (
+              <div className="absolute right-0 top-full mt-2 bg-[#090f1d] border border-slate-800 rounded-2xl shadow-2xl z-[130] overflow-hidden min-w-[150px]">
+                <div className="px-4 py-3 border-b border-slate-800">
+                  <span className="text-xs font-bold text-white">Language</span>
+                </div>
+                {[{ code: 'en', label: 'English', flag: '🇬🇧' }, { code: 'sr', label: 'Srpski', flag: '🇷🇸' }].map(({ code, label, flag }) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => { setLocale(code as Locale); setLangOpen(false); }}
+                    className={`flex items-center gap-3 px-4 py-2.5 w-full text-left hover:bg-slate-800/60 transition cursor-pointer text-sm ${locale === code ? 'bg-slate-800/40' : ''}`}
+                  >
+                    <span className="text-lg">{flag}</span>
+                    <span className={locale === code ? 'text-white font-semibold' : 'text-slate-300'}>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {host ? (
             <div className="bg-[#0b1224] border border-slate-800/90 rounded-2xl px-3.5 py-1.5 flex items-center gap-3 text-xs shadow-inner">
@@ -775,8 +808,47 @@ export default function App() {
 
       <LiveChatFab />
 
-      <footer className="border-t border-slate-850 bg-[#040810]/60 py-6 text-center text-[10px] text-slate-500">
-        <p>{t('footer.copy')}</p>
+      <footer className="border-t border-slate-850 bg-[#040810]/60 py-8 text-center">
+        <div className="flex flex-col items-center gap-6">
+          {/* Social Icons */}
+          <div className="flex items-center justify-center gap-6">
+            <a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center transition-all hover:border-slate-700 hover:bg-slate-800">
+                <Facebook className="h-5 w-5 text-slate-400 group-hover:text-white transition-colors" />
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium">Facebook</span>
+            </a>
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center transition-all hover:border-slate-700 hover:bg-slate-800">
+                <Instagram className="h-5 w-5 text-slate-400 group-hover:text-white transition-colors" />
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium">Instagram</span>
+            </a>
+            <a
+              href="https://discord.gg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center transition-all hover:border-slate-700 hover:bg-slate-800">
+                <MessageCircle className="h-5 w-5 text-slate-400 group-hover:text-white transition-colors" />
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium">Discord</span>
+            </a>
+          </div>
+          {/* Copyright */}
+          <p className="text-[10px] text-slate-500">{t('footer.copy')}</p>
+        </div>
       </footer>
 
       <AuthModal
