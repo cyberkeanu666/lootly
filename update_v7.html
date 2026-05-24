@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lootly — Antigravity Task Board v7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Unbounded:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+	--bg:#03050a; --bg2:#080d18; --bg3:#0d1525; --bg4:#121e35;
+	--border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.13);
+	--red:#ff3b3b; --orange:#ff8c00; --yellow:#f5c842;
+	--green:#00e87a; --blue:#3b9eff; --cyan:#00d4ff;
+	--text:#e8edf5; --muted:#4a5568; --muted2:#8899aa;
+	--mono:'JetBrains Mono',monospace; --head:'Unbounded',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.012) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:-250px;left:50%;transform:translateX(-50%);width:1000px;height:600px;background:radial-gradient(ellipse,rgba(0,232,122,0.04) 0%,transparent 65%);pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 24px 100px;}
+
+header{padding:52px 0 44px;border-bottom:1px solid var(--border2);margin-bottom:44px;}
+.hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.logo{font-family:var(--head);font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
+.logo span{color:var(--green);}
+h1{font-family:var(--head);font-size:clamp(26px,4.5vw,44px);font-weight:900;line-height:1.05;letter-spacing:-1px;}
+h1 em{font-style:normal;color:var(--red);}
+.hsub{margin-top:10px;color:var(--muted2);font-size:12px;max-width:520px;line-height:1.9;}
+.hsub strong{color:var(--cyan);}
+
+.stats{display:flex;gap:1px;background:var(--border);border:1px solid var(--border2);border-radius:10px;overflow:hidden;flex-shrink:0;align-self:flex-end;}
+.sbox{padding:14px 22px;background:var(--bg2);text-align:center;min-width:84px;}
+.sn{font-family:var(--head);font-size:20px;font-weight:700;display:block;}
+.sn.r{color:var(--red);} .sn.o{color:var(--orange);} .sn.y{color:var(--yellow);} .sn.g{color:var(--green);}
+.sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;display:block;}
+
+.diag{background:var(--bg2);border:1px solid rgba(255,59,59,0.3);border-radius:12px;padding:20px 24px;margin-bottom:40px;}
+.diag-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--red);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.diag-title::before{content:'⚠';}
+.diag-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start;}
+.diag-row:last-child{border-bottom:none;}
+.diag-label{color:var(--red);min-width:230px;flex-shrink:0;font-weight:700;}
+.diag-val{color:var(--muted2);line-height:1.6;}
+.diag-val code{color:var(--cyan);background:rgba(0,212,255,.07);padding:1px 5px;border-radius:3px;}
+
+.fbar{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;align-items:center;}
+.flabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-right:4px;}
+.fbtn{padding:5px 13px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;}
+.fbtn:hover{color:var(--text);background:var(--bg3);}
+.fbtn.on{background:var(--red);border-color:var(--red);color:#fff;}
+.fbtn.on.oo{background:var(--orange);border-color:var(--orange);}
+.fbtn.on.oy{background:var(--yellow);border-color:var(--yellow);color:#000;}
+.fbtn.on.og{background:var(--green);border-color:var(--green);color:#000;}
+.fbtn.on.oc{background:var(--cyan);border-color:var(--cyan);color:#000;}
+
+.sec{margin-bottom:44px;}
+.sectitle{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.sectxt{font-family:var(--head);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted2);}
+.seccnt{font-size:10px;padding:2px 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,transform .2s;position:relative;}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:12px 0 0 12px;}
+.card.c::before{background:var(--red);}
+.card.h::before{background:var(--orange);}
+.card.m::before{background:var(--yellow);}
+.card:hover{border-color:var(--border2);transform:translateX(2px);}
+.card.done-card{opacity:.4;}
+.card.done-card .ctitle{text-decoration:line-through;color:var(--muted);}
+.hidden{display:none!important;}
+
+.ch{padding:16px 18px 14px 22px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;user-select:none;}
+.cbox{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);flex-shrink:0;margin-top:2px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--bg3);font-weight:700;}
+.cbox:hover{border-color:var(--green);}
+.cbox.ticked{background:var(--green);border-color:var(--green);color:#000;}
+.cmeta{flex:1;}
+.ctop{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.cid{font-size:10px;color:var(--muted);letter-spacing:1px;}
+.pbadge{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;padding:2px 7px;border-radius:4px;font-weight:700;}
+.pc{background:rgba(255,59,59,.14);color:var(--red);border:1px solid rgba(255,59,59,.28);}
+.ph{background:rgba(255,140,0,.14);color:var(--orange);border:1px solid rgba(255,140,0,.28);}
+.pm{background:rgba(245,200,66,.1);color:var(--yellow);border:1px solid rgba(245,200,66,.22);}
+.ftag{font-size:10px;color:var(--cyan);background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.16);padding:2px 7px;border-radius:4px;}
+.ftag.exists{color:#a8c4e0;background:rgba(168,196,224,.06);border-color:rgba(168,196,224,.14);}
+.ctitle{font-family:var(--head);font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4;}
+.cdesc{font-size:12px;color:var(--muted2);line-height:1.6;}
+.ctog{color:var(--muted);font-size:15px;flex-shrink:0;transition:transform .3s;margin-top:3px;}
+.ctog.open{transform:rotate(180deg);}
+
+.cbody{display:none;border-top:1px solid var(--border);background:var(--bg3);}
+.cbody.open{display:block;}
+.cbin{padding:18px 22px;}
+
+.done-box{background:rgba(0,232,122,.04);border:1px solid rgba(0,232,122,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#6ee7b7;line-height:1.8;}
+.done-box strong{color:var(--green);}
+.warn-box{background:rgba(255,140,0,.04);border:1px solid rgba(255,140,0,.14);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffcc80;line-height:1.8;}
+.warn-box strong{color:var(--orange);}
+.bug-box{background:rgba(255,59,59,.04);border:1px solid rgba(255,59,59,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#ffaaaa;line-height:1.8;}
+.bug-box strong{color:var(--red);}
+
+.todos{list-style:none;margin-bottom:18px;}
+.ti{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted2);align-items:flex-start;}
+.ti:last-child{border-bottom:none;}
+.arr{color:var(--red);flex-shrink:0;margin-top:1px;font-style:normal;}
+.arr.ok{color:var(--green);}
+.arr.w{color:var(--orange);}
+
+.psec{margin-top:18px;border:1px solid rgba(0,212,255,.18);border-radius:10px;overflow:hidden;}
+.phead{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(0,212,255,.05);border-bottom:1px solid rgba(0,212,255,.13);}
+.plabel{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);font-weight:700;display:flex;align-items:center;gap:6px;}
+.plabel::before{content:'agy';}
+.copybtn{display:flex;align-items:center;gap:5px;padding:5px 14px;background:var(--cyan);color:#000;border:none;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.copybtn:hover{background:#fff;transform:scale(1.03);}
+.copybtn.ok{background:var(--green);}
+.ptext{padding:14px 16px;font-size:11.5px;color:#a8c4e0;line-height:1.95;white-space:pre-wrap;word-break:break-word;background:var(--bg);max-height:500px;overflow-y:auto;}
+.ptext::-webkit-scrollbar{width:3px;}
+.ptext::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.done-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.done-item{background:var(--bg2);border:1px solid rgba(0,232,122,0.15);border-radius:10px;padding:12px 16px;}
+.done-item-title{color:var(--green);font-size:10px;margin-bottom:5px;}
+.done-item-desc{font-size:11px;color:var(--muted2);}
+
+.order-box{background:var(--bg2);border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:20px 24px;margin-bottom:40px;}
+.order-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);margin-bottom:14px;}
+.order-row{font-size:12px;color:var(--muted2);line-height:2.2;}
+.order-row span{display:inline-block;padding:1px 7px;border-radius:4px;margin-right:4px;font-weight:700;}
+.or{background:rgba(255,59,59,.14);color:var(--red);}
+.oh{background:rgba(255,140,0,.14);color:var(--orange);}
+.om{background:rgba(245,200,66,.1);color:var(--yellow);}
+
+.pbar-wrap{position:fixed;bottom:0;left:0;right:0;background:rgba(3,5,10,.96);border-top:1px solid var(--border2);backdrop-filter:blur(20px);padding:11px 24px;display:flex;align-items:center;gap:18px;z-index:100;}
+.pbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);white-space:nowrap;}
+.pbbar{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.pbfill{height:100%;background:linear-gradient(90deg,var(--red),var(--orange),var(--green));border-radius:2px;width:0%;transition:width .7s ease;}
+.pbpct{font-family:var(--head);font-size:12px;color:var(--text);white-space:nowrap;min-width:48px;}
+.pbcnt{font-size:10px;color:var(--muted2);white-space:nowrap;}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+@media(max-width:640px){h1{font-size:24px;}.stats{width:100%;}.done-grid{grid-template-columns:1fr;}.diag-label{min-width:120px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+<div class="hrow">
+<div>
+<div class="logo">Loot<span>ly</span> — Antigravity Task Board <span>v7</span></div>
+<h1>Bugovi pronađeni<br>u <em>v6 kodu</em></h1>
+<p class="hsub">Analiza stvarnog koda iz <strong>v6patch.zip</strong> — 5 novih bugova sa tačnim root causima i copy-paste promptovima za Antigravity agent.</p>
+</div>
+<div class="stats">
+<div class="sbox"><span class="sn r" id="cnt-c">3</span><span class="sl">Kritično</span></div>
+<div class="sbox"><span class="sn o" id="cnt-h">1</span><span class="sl">Visoko</span></div>
+<div class="sbox"><span class="sn y" id="cnt-m">1</span><span class="sl">Srednje</span></div>
+<div class="sbox"><span class="sn g" id="cnt-done">0</span><span class="sl">Gotovo</span></div>
+</div>
+</div>
+</header>
+
+<div class="diag">
+<div class="diag-title">Root cause dijagnoza — svi bugovi iz v6 koda</div>
+<div class="diag-row">
+<span class="diag-label">Winner ekran nestaje odmah</span>
+<span class="diag-val">
+<code>draw:completed</code> event setuje <code>showDrawAgain(false)</code> + 6s timeout, ali <code>winners</code> state se puni i renderuje se listu odmah. Problem je što GSAP animacija <code>winner-banner</code> se poziva u <code>draw:winner_verified</code> ali <code>#winner-banner</code> element nije uvek u DOM-u u tom trenutku jer <code>stage</code> jos nije <code>winner_verified</code>.
+</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">GSAP drum roll ne radi vizuelno</span>
+<span class="diag-val">
+<code>drumRef.current</code> postoji, ali <code>drumVisible</code> state se setuje na <code>true</code> asinkrono unutar <code>runDrumRoll</code>. GSAP timeline počinje i poziva <code>gsap.set(el, ...)</code> pre nego što React re-render pokaže element. Nema <code>await</code> ni <code>flushSync</code> između <code>setDrumVisible(true)</code> i GSAP animacije — element je <code>hidden</code> kad GSAP krene.
+</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">Instagram scrapeFollowingList sandbox vraća prazan niz</span>
+<span class="diag-val">
+U <code>instagramBio.ts</code>, sandbox za <code>scrapeFollowingList</code> vraća <code>following: []</code> — prazan niz. Ovo znači da u sandbox modu korisnik koji treba da prati određene profile UVEK bude disqualified jer <code>missingProfiles</code> nije prazan. Sandbox treba vraćati mock following listu koja uključuje sve tražene profile.
+</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">verifyStep UI uvek ostaje na 2/5 tokom čekanja</span>
+<span class="diag-val">
+<code>startScrapeVerification()</code> u <code>GiveawayPage.tsx</code> setuje <code>setVerifyStep(1)</code> pa odmah <code>setVerifyStep(2)</code> sinkrono, poziva <code>onVerifyRequest()</code> koji blokira do 60×1.5s, i na kraju setuje step 5 samo ako <code>res?.stage</code> postoji. Nema nikakvog naprednog progress update-a tokom 90 sekundi čekanja — korisnik vidi frozen progress bar na 2/5 i misli da se ništa ne dešava.
+</span>
+</div>
+<div class="diag-row">
+<span class="diag-label">Copy Archive Link koristi pogrešan URL format</span>
+<span class="diag-val">
+U <code>DrawPage.tsx</code>, dugme "Copy Archive Link" kopira <code>window.location.origin + '/giveaway/' + slug + '/archive'</code> — bez <code>#/</code> hash router prefiksa. App koristi HashRouter (<code>/#/giveaway/slug</code>), pa kopirani link ne radi direktno.
+</span>
+</div>
+</div>
+
+<div class="fbar">
+<span class="flabel">Filter:</span>
+<button class="fbtn on oc" onclick="doFilter('all',this)">Sve</button>
+<button class="fbtn" onclick="doFilter('c',this)">Kriticno</button>
+<button class="fbtn" onclick="doFilter('h',this)">Visoko</button>
+<button class="fbtn" onclick="doFilter('m',this)">Srednje</button>
+<button class="fbtn" onclick="doFilter('done',this)">Gotovo</button>
+</div>
+
+<!-- CRITICAL -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--red);font-size:15px">●</span>
+<span class="sectxt">Kritično</span>
+<span class="seccnt" id="sc-c">3 taskova</span>
+</div>
+
+<!-- #01 -->
+<div class="card c" data-p="c" id="t01">
+<div class="ch" onclick="tog('t01')">
+<div class="cbox" onclick="tick(event,'t01')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#01</span><span class="pbadge pc">KRITIČNO</span><span class="ftag exists">src/pages/DrawPage.tsx</span></div>
+<div class="ctitle">GSAP drum roll — element je hidden kad GSAP krene, animacija se ne vidi</div>
+<div class="cdesc">drumVisible state se setuje async pa React još nije prikazao element. GSAP timeline odmah počinje da animira #drum-display koji je display:none. Vizuelno: drum roll preskočen, odmah se vidi finalni winner.</div>
+</div>
+<div class="ctog" id="tog-t01">▾</div>
+</div>
+<div class="cbody" id="b-t01">
+<div class="cbin">
+<div class="bug-box">
+<strong>Root cause:</strong> U <code>runDrumRoll()</code>, <code>setDrumVisible(true)</code> je React state — ne važi odmah. GSAP timeline se kreira u istom sinkronom bloku pa <code>el</code> je još skrivena (<code>display:none</code> via <code>.hidden</code> klasa). GSAP animira nevidljiv element. Rešenje: ukloniti CSS-based show/hide i koristiti GSAP direktno za opacity/visibility, ili flushSync, ili requestAnimationFrame pre GSAP starta.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Zameniti drumVisible state + CSS .hidden pristup sa direktnim GSAP kontrolom vidljivosti elementa</span></li>
+<li class="ti"><i class="arr">→</i><span>Na početku runDrumRoll: gsap.set(el, { autoAlpha: 1, display: 'block' }) umesto setDrumVisible(true)</span></li>
+<li class="ti"><i class="arr">→</i><span>Na kraju runDrumRoll (onComplete): gsap.set(el, { autoAlpha: 0, display: 'none' }) umesto setDrumVisible(false)</span></li>
+<li class="ti"><i class="arr w">!</i><span>Ukloniti className koji include-uje drumVisible boolean za display — GSAP preuzima kontrolu</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p01')">COPY</button></div>
+<div class="ptext" id="p01">Fix GSAP drum roll animation in DrawPage — the drum element is hidden via CSS when GSAP tries to animate it, so the animation is invisible.
+
+EXISTING FILE: src/pages/DrawPage.tsx
+
+The bug: setDrumVisible(true) is a React state update that does not take effect synchronously. GSAP timeline starts in the same synchronous call and animates an element that still has display:none from the hidden class. The result is that the drum roll is never visible.
+
+STEP 1 — Remove the drumVisible state entirely. Find and delete this line:
+  const [drumVisible, setDrumVisible] = useState(false);
+
+STEP 2 — Find the drum-display div JSX:
+
+FIND:
+          <div
+            ref={drumRef}
+            id="drum-display"
+            className={`mb-4 font-mono font-bold text-amber-400 text-center ${
+              drumVisible ? 'block' : 'hidden'
+            }`}
+            style={{ fontSize: '2rem' }}
+          >
+            {drumText}
+          </div>
+
+REPLACE WITH:
+          <div
+            ref={drumRef}
+            id="drum-display"
+            className="mb-4 font-mono font-bold text-amber-400 text-center"
+            style={{ fontSize: '2rem', visibility: 'hidden', opacity: 0 }}
+          >
+            {drumText}
+          </div>
+
+STEP 3 — Inside the runDrumRoll function, find this block at the top:
+
+FIND:
+    setDrumVisible(true);
+    const fakeCount = 8 + Math.floor(Math.random() * 5);
+
+REPLACE WITH:
+    gsap.set(el, { visibility: 'visible', opacity: 1, scale: 1 });
+    const fakeCount = 8 + Math.floor(Math.random() * 5);
+
+STEP 4 — Find the onComplete callback inside the runDrumRoll gsap.timeline:
+
+FIND:
+      onComplete: () => {
+        setDrumText(displayName(finalName));
+        gsap.fromTo(
+          el,
+          { scale: 1.4, opacity: 0 },
+          {
+            scale: 1,
+            opacity: 1,
+            duration: 0.4,
+            ease: 'power2.out',
+            onComplete: () => {
+              setDrumVisible(false);
+              onComplete();
+            },
+          }
+        );
+      },
+
+REPLACE WITH:
+      onComplete: () => {
+        setDrumText(displayName(finalName));
+        gsap.fromTo(
+          el,
+          { scale: 1.4, opacity: 0 },
+          {
+            scale: 1,
+            opacity: 1,
+            duration: 0.4,
+            ease: 'power2.out',
+            onComplete: () => {
+              gsap.to(el, {
+                opacity: 0,
+                scale: 0.9,
+                duration: 0.3,
+                delay: 0.6,
+                ease: 'power2.in',
+                onComplete: () => {
+                  gsap.set(el, { visibility: 'hidden' });
+                  onComplete();
+                },
+              });
+            },
+          }
+        );
+      },
+
+This makes GSAP own the visibility completely, avoiding the React state timing problem. The drum element stays visible for an extra 0.6 seconds after showing the final name, then fades out before revealing the winner.
+
+Do not change any other part of DrawPage.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #02 -->
+<div class="card c" data-p="c" id="t02">
+<div class="ch" onclick="tog('t02')">
+<div class="cbox" onclick="tick(event,'t02')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#02</span><span class="pbadge pc">KRITIČNO</span><span class="ftag exists">src/pages/DrawPage.tsx</span></div>
+<div class="ctitle">Winner ekran — #winner-banner GSAP animira element koji nije u DOM-u u trenutku poziva</div>
+<div class="cdesc">draw:winner_verified handler poziva gsap.fromTo('#winner-banner') unutar requestAnimationFrame, ali stage je još winner_drawn (ne winner_verified), pa React nije renderovao winner-banner element. GSAP ne pronalazi element i animacija se ne desi. Winner potvrda se prikaže bez ikakve animacije.</div>
+</div>
+<div class="ctog" id="tog-t02">▾</div>
+</div>
+<div class="cbody" id="b-t02">
+<div class="cbin">
+<div class="bug-box">
+<strong>Root cause:</strong> U <code>draw:winner_verified</code> event handleru: <code>setStage('winner_verified')</code> je async state update. <code>requestAnimationFrame</code> se izvršava pre React re-rendera. U tom trenutku <code>#winner-banner</code> još nije u DOM-u jer ga React renderuje samo kad je <code>stage === 'winner_verified'</code>. Rešenje: koristiti <code>winnerSectionRef</code> pattern ili useEffect koji reaguje na stage promenu.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Dodati useEffect koji se aktivira kad stage postane 'winner_verified' i tada pokrenuti GSAP animaciju</span></li>
+<li class="ti"><i class="arr">→</i><span>Ukloniti requestAnimationFrame GSAP poziv iz draw:winner_verified socket handlera</span></li>
+<li class="ti"><i class="arr">→</i><span>Dodati winnerBannerRef referencu na winner-banner element za type-safe GSAP target</span></li>
+<li class="ti"><i class="arr w">!</i><span>Isti pattern primeniti za winner-list-item animaciju u draw:completed handleru — isti bug</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p02')">COPY</button></div>
+<div class="ptext" id="p02">Fix winner banner and winner list GSAP animations in DrawPage — they target DOM elements that do not exist yet when the animation is triggered.
+
+EXISTING FILE: src/pages/DrawPage.tsx
+
+The bug: GSAP animations for #winner-banner and .winner-list-item are triggered inside socket event handlers using requestAnimationFrame. At that moment, React state updates (setStage) have not re-rendered yet, so the target elements are not in the DOM. GSAP finds nothing and the animations are silently skipped.
+
+STEP 1 — Add a ref for the winner banner. Find the existing refs near the top of the component:
+
+FIND:
+  const drumRef = useRef<HTMLDivElement>(null);
+  const winnerSectionRef = useRef<HTMLDivElement>(null);
+
+ADD after those two lines:
+  const winnerBannerRef = useRef<HTMLParagraphElement>(null);
+
+STEP 2 — Add a ref to the winner banner JSX element. Find:
+
+FIND:
+          {stage === 'winner_verified' && winners.length > 0 && (
+            <p
+              id="winner-banner"
+              className="text-xl font-bold text-emerald-400 mt-2"
+            >
+              🏆 Winner confirmed!
+            </p>
+          )}
+
+REPLACE WITH:
+          {stage === 'winner_verified' && winners.length > 0 && (
+            <p
+              ref={winnerBannerRef}
+              id="winner-banner"
+              className="text-xl font-bold text-emerald-400 mt-2"
+            >
+              🏆 Winner confirmed!
+            </p>
+          )}
+
+STEP 3 — Add a useEffect that runs GSAP only after React renders the winner banner. Add this useEffect after the existing scroll useEffect (the one that runs when stage === 'completed'):
+
+  // Animate winner banner after React renders it
+  useEffect(() => {
+    if (stage === 'winner_verified' && winnerBannerRef.current) {
+      gsap.fromTo(
+        winnerBannerRef.current,
+        { scale: 0.8, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
+      );
+    }
+  }, [stage]);
+
+STEP 4 — Remove the requestAnimationFrame GSAP call from inside the draw:winner_verified socket handler. Find:
+
+FIND:
+          requestAnimationFrame(() => {
+            gsap.fromTo(
+              '#winner-banner',
+              { scale: 0.8, opacity: 0 },
+              { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
+            );
+          });
+
+DELETE that entire requestAnimationFrame block (keep everything else in the handler).
+
+STEP 5 — Fix the winner list animation the same way. Find inside the draw:completed socket handler:
+
+FIND:
+        requestAnimationFrame(() => {
+          gsap.from('.winner-list-item', {
+            duration: 0.4,
+            y: 15,
+            opacity: 0,
+            stagger: 0.1,
+            ease: 'power2.out',
+          });
+        });
+
+DELETE that entire block.
+
+Then add a second useEffect after the one added in Step 3:
+
+  // Animate winner list items after React renders them
+  useEffect(() => {
+    if (stage === 'completed' && winners.length > 0) {
+      // Small delay to let React paint the items
+      const id = setTimeout(() => {
+        gsap.from('.winner-list-item', {
+          duration: 0.4,
+          y: 15,
+          opacity: 0,
+          stagger: 0.1,
+          ease: 'power2.out',
+        });
+      }, 80);
+      return () => clearTimeout(id);
+    }
+  }, [stage, winners]);
+
+Do not change any other part of DrawPage.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- #03 -->
+<div class="card c" data-p="c" id="t03">
+<div class="ch" onclick="tog('t03')">
+<div class="cbox" onclick="tick(event,'t03')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#03</span><span class="pbadge pc">KRITIČNO</span><span class="ftag exists">server/scraper/instagramBio.ts</span></div>
+<div class="ctitle">Sandbox scrapeFollowingList vraća prazan niz — svi giveaways sa required follows disqualify sve u sandbox modu</div>
+<div class="cdesc">scrapeFollowingList u sandbox modu vraća following: [] — prazan niz. auditWinnerFollows() tada pronalazi da korisnik ne prati nijedan traženi profil i disqualify-uje ga. U dev/sandbox okruženju nijedan korisnik ne može proći draw ako giveaway ima required follows.</div>
+</div>
+<div class="ctog" id="tog-t03">▾</div>
+</div>
+<div class="cbody" id="b-t03">
+<div class="cbin">
+<div class="bug-box">
+<strong>Lokacija buga (instagramBio.ts ~line 145):</strong><br>
+if (process.env.SCRAPER_SANDBOX === 'true') {<br>
+&nbsp;&nbsp;return { success: true, following: [], isPrivate: false, source: 'sandbox' };<br>
+}<br><br>
+prazan niz znaci da missingProfiles = svi requiredProfiles = disqualify. Treba vraćati mock listu koja uključuje sve requiredProfiles.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>scrapeFollowingList sandbox treba primiti requiredProfiles kao parametar, ili: auditWinnerFollows() treba u sandbox modu odmah vratiti passed:true bez pozivanja scrapeFollowingList</span></li>
+<li class="ti"><i class="arr ok">ok</i><span>Jednostavnije rešenje: u server.ts, auditWinnerFollows() već ima sandbox check na liniji 64 — ali proverava SCRAPER_SANDBOX pre poziva scrapeFollowingList. Taj check je korektan. Problem je što auditWinnerFollows imports scrapeFollowingList direktno, a sandbox check je OK.</span></li>
+<li class="ti"><i class="arr w">!</i><span>Proveri: da li je SCRAPER_SANDBOX=true u .env fajlu? Ako jeste, auditWinnerFollows bi trebalo da vrati {passed:true} pre poziva scrapeFollowingList. Ako audit i dalje poziva scrapeFollowing, provjeri liniju 64 u server.ts.</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p03')">COPY</button></div>
+<div class="ptext" id="p03">Fix sandbox mode for scrapeFollowingList — in sandbox mode it returns an empty following array which disqualifies all participants who need to follow specific profiles.
+
+EXISTING FILE: server/scraper/instagramBio.ts
+
+STEP 1 — Find the sandbox block inside scrapeFollowingList:
+
+FIND:
+  if (process.env.SCRAPER_SANDBOX === 'true') {
+    return { success: true, following: [], isPrivate: false, source: 'sandbox' };
+  }
+
+REPLACE WITH:
+  if (process.env.SCRAPER_SANDBOX === 'true') {
+    console.log(`[Scraper/sandbox] Simulating following list for @${handle} — returning wildcard pass`);
+    // In sandbox mode, return a sentinel value. The caller (auditWinnerFollows) checks
+    // SCRAPER_SANDBOX itself and returns passed:true before calling this function,
+    // but as a safety net return a non-empty list that signals sandbox bypass.
+    return {
+      success: true,
+      following: ['__sandbox_wildcard__'],
+      isPrivate: false,
+      source: 'sandbox' as const,
+    };
+  }
+
+STEP 2 — Verify the audit function in server.ts handles sandbox correctly. Find the auditWinnerFollows function (around line 60-80):
+
+FIND:
+  if (process.env.SCRAPER_SANDBOX === 'true') return { passed: true, missingProfiles: [] };
+
+This line should already exist. If it does NOT exist, add it as the very first line inside auditWinnerFollows after the function signature. This is the primary fix — the scrapeFollowingList change in Step 1 is a secondary safety net.
+
+EXISTING FILE: server/scraper/instagramBio.ts
+
+STEP 3 — Also update scrapeInstagramBioForCode sandbox to log more clearly (optional but helpful for debugging):
+
+FIND:
+    console.log(`[Scraper/sandbox] Simulating bio check for @${handle}, code=${verificationCode}`);
+
+REPLACE WITH:
+    console.log(`[Scraper/sandbox] Bypassing bio check for @${handle} — SCRAPER_SANDBOX=true, auto-passing code=${verificationCode}`);
+
+No other changes needed.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end critical -->
+
+<!-- HIGH -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--orange);font-size:15px">●</span>
+<span class="sectxt">Visoko</span>
+<span class="seccnt" id="sc-h">1 task</span>
+</div>
+
+<!-- #04 -->
+<div class="card h" data-p="h" id="t04">
+<div class="ch" onclick="tog('t04')">
+<div class="cbox" onclick="tick(event,'t04')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#04</span><span class="pbadge ph">VISOKO</span><span class="ftag exists">src/components/GiveawayPage.tsx</span></div>
+<div class="ctitle">Progress bar verifikacije stoji na 2/5 tokom cijelog čekanja (90s) — korisnik misli da je zamrlo</div>
+<div class="cdesc">startScrapeVerification() setuje verifyStep na 1 pa odmah na 2, pa čeka do 90 sekundi bez ikakvog update-a. Korisnik vidi frozen progress bar i odustane. Nema periodi čnih update-a tokom polling-a.</div>
+</div>
+<div class="ctog" id="tog-t04">▾</div>
+</div>
+<div class="cbody" id="b-t04">
+<div class="cbin">
+<div class="warn-box">
+<strong>Trenutni flow u GiveawayPage.tsx:</strong><br>
+setVerifyStep(1) → setVerifyStep(2) → čeka onVerifyRequest() (do 90s) → setVerifyStep(5)<br><br>
+Korisnik vidi: "2/5 — Looking for your verification code..." i to ne menja 90 sekundi.
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Dodati interval unutar startScrapeVerification koji povećava verifyStep od 2 do 4 tokom čekanja (npr. step 3 na 15s, step 4 na 40s)</span></li>
+<li class="ti"><i class="arr">→</i><span>Pratiti promenu verifyMessage poruka tokom intervala: "Crawling profile...", "Checking bio content...", "Almost done..."</span></li>
+<li class="ti"><i class="arr">→</i><span>Obavezno clearInterval kad onVerifyRequest() se resolve-uje (success ili fail)</span></li>
+<li class="ti"><i class="arr w">!</i><span>Ne menjati onVerifyRequest (App.tsx) — update treba biti u GiveawayPage.tsx lokalno</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p04')">COPY</button></div>
+<div class="ptext" id="p04">Add animated progress updates during Instagram bio verification polling — currently the progress bar freezes at step 2 for up to 90 seconds.
+
+EXISTING FILE: src/components/GiveawayPage.tsx
+
+Find the startScrapeVerification function:
+
+FIND:
+  const startScrapeVerification = async () => {
+    setIsVerifying(true);
+    setVerifyStep(1);
+    setVerifyMessage('Checking your Instagram profile…');
+
+    setVerifyStep(2);
+    setVerifyMessage('Looking for your verification code in bio…');
+
+    const res = await onVerifyRequest(participantId);
+
+    if (res?.stage) {
+      setVerifyMessage('Finalizing verification…');
+      setVerifyStep(5);
+    }
+    setIsVerifying(false);
+
+    if (res && res.success) {
+      setSuccessJoin(true);
+      setCreatedParticipant(res.participant);
+    } else {
+      setErrorMessage(
+        res?.message ||
+          'Verification code not found in your Instagram bio. Make sure: (1) Your profile is public, (2) The code is copied exactly as shown, (3) Wait 1-2 minutes after saving your bio, then try again.'
+      );
+    }
+  };
+
+REPLACE WITH:
+  const startScrapeVerification = async () => {
+    setIsVerifying(true);
+    setVerifyStep(1);
+    setVerifyMessage('Checking your Instagram profile…');
+
+    await new Promise((r) => setTimeout(r, 400));
+    setVerifyStep(2);
+    setVerifyMessage('Looking for your verification code in bio…');
+
+    // Animate progress during the long polling wait
+    const progressSteps: Array<{ delay: number; step: number; message: string }> = [
+      { delay: 8000,  step: 2, message: 'Crawling Instagram profile page…' },
+      { delay: 20000, step: 3, message: 'Reading bio content…' },
+      { delay: 45000, step: 3, message: 'Checking verification code match…' },
+      { delay: 65000, step: 4, message: 'Almost done, finishing up…' },
+    ];
+
+    const timers: ReturnType<typeof setTimeout>[] = progressSteps.map(({ delay, step, message }) =>
+      setTimeout(() => {
+        setVerifyStep(step);
+        setVerifyMessage(message);
+      }, delay)
+    );
+
+    const res = await onVerifyRequest(participantId);
+
+    // Cancel pending progress timers
+    timers.forEach(clearTimeout);
+
+    setVerifyStep(5);
+    setVerifyMessage('Finalizing verification…');
+    await new Promise((r) => setTimeout(r, 300));
+    setIsVerifying(false);
+
+    if (res && res.success) {
+      setSuccessJoin(true);
+      setCreatedParticipant(res.participant);
+    } else {
+      setErrorMessage(
+        res?.message ||
+          'Verification code not found in your Instagram bio. Make sure: (1) Your profile is public, (2) The code is copied exactly as shown, (3) Wait 1-2 minutes after saving your bio, then try again.'
+      );
+    }
+  };
+
+Do not change anything else in GiveawayPage.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end high -->
+
+<!-- MEDIUM -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--yellow);font-size:15px">●</span>
+<span class="sectxt">Srednje</span>
+<span class="seccnt" id="sc-m">1 task</span>
+</div>
+
+<!-- #05 -->
+<div class="card m" data-p="m" id="t05">
+<div class="ch" onclick="tog('t05')">
+<div class="cbox" onclick="tick(event,'t05')"></div>
+<div class="cmeta">
+<div class="ctop"><span class="cid">#05</span><span class="pbadge pm">SREDNJE</span><span class="ftag exists">src/pages/DrawPage.tsx</span></div>
+<div class="ctitle">Copy Archive Link dugme kopira pogrešan URL — nema #/ hash prefix koji app koristi</div>
+<div class="cdesc">DrawPage Copy Archive Link kopira window.location.origin + '/giveaway/slug/archive'. App koristi HashRouter pa ispravan URL je origin + '/#/giveaway/slug/archive'. Kopirani link otvara blank stranicu.</div>
+</div>
+<div class="ctog" id="tog-t05">▾</div>
+</div>
+<div class="cbody" id="b-t05">
+<div class="cbin">
+<div class="warn-box">
+<strong>Trenutni kod u DrawPage.tsx:</strong><br>
+navigator.clipboard.writeText(<code>`${window.location.origin}/giveaway/${slug}/archive`</code>)<br><br>
+Ispravno treba biti:<br>
+navigator.clipboard.writeText(<code>`${window.location.origin}/#/giveaway/${slug}/archive`</code>)
+</div>
+<ul class="todos">
+<li class="ti"><i class="arr">→</i><span>Dodati /#/ prefix u clipboard URL u DrawPage.tsx</span></li>
+<li class="ti"><i class="arr ok">ok</i><span>Isti bug proveriti u HostDashboard.tsx (task #04 iz v6 patch-a) — onaj Copy Link koji je tamo dodat mora koristiti '/#/giveaway/' prefix</span></li>
+</ul>
+<div class="psec">
+<div class="phead"><span class="plabel"> Antigravity Prompt</span><button class="copybtn" onclick="cp('p05')">COPY</button></div>
+<div class="ptext" id="p05">Fix the archive link copy button in DrawPage — it generates a URL without the hash router prefix.
+
+EXISTING FILE: src/pages/DrawPage.tsx
+
+Find the Copy Archive Link button onClick handler:
+
+FIND:
+                onClick={() =>
+                  navigator.clipboard
+                    .writeText(`${window.location.origin}/giveaway/${slug}/archive`)
+                    .then(() => alert('Archive link copied!'))
+                }
+
+REPLACE WITH:
+                onClick={() =>
+                  navigator.clipboard
+                    .writeText(`${window.location.origin}/#/giveaway/${slug}/archive`)
+                    .then(() => alert('Archive link copied!'))
+                }
+
+That is the only change needed in DrawPage.tsx.
+
+ALSO CHECK: If you previously implemented the Copy Link button in HostDashboard.tsx (task #04 from v6), verify that handler uses the same pattern:
+  const url = `${window.location.origin}/#/giveaway/${slug}`;
+Make sure the /#/ is present there too. If it is missing, add it.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end medium -->
+
+<!-- DONE -->
+<div class="sec">
+<div class="sectitle">
+<span style="color:var(--green);font-size:15px">●</span>
+<span class="sectxt">Potvrđeno radi u v6</span>
+</div>
+<div class="done-grid">
+<div class="done-item"><div class="done-item-title">runDrumRoll() funkcija postoji i poziva se</div><div class="done-item-desc">draw:winner_drawn handler ispravno poziva runDrumRoll pre setStage. Socket event flow je korektan.</div></div>
+<div class="done-item"><div class="done-item-title">showDrawAgain 6s delay implementiran</div><div class="done-item-desc">draw:completed setuje setTimeout 6000ms za showDrawAgain. Draw Again dugme čeka.</div></div>
+<div class="done-item"><div class="done-item-title">SCRAPER_SANDBOX check u auditWinnerFollows</div><div class="done-item-desc">server.ts linija ~64 ima sandbox bypass za follow audit. Radi ispravno.</div></div>
+<div class="done-item"><div class="done-item-title">Instagram bio sandbox vraća codeFound:true</div><div class="done-item-desc">scrapeInstagramBioForCode sandbox blok vraća codeFound:true ispravno.</div></div>
+<div class="done-item"><div class="done-item-title">confetti na win radi</div><div class="done-item-desc">confetti() poziv u draw:winner_verified je sinkron i ne zavisi od DOM-a — radi bez problema.</div></div>
+<div class="done-item"><div class="done-item-title">Winner scroll u view</div><div class="done-item-desc">winnerSectionRef.scrollIntoView u useEffect sa stage === 'completed' radi ispravno.</div></div>
+</div>
+</div>
+
+<!-- REDOSLED -->
+<div class="order-box">
+<div class="order-title">Preporučeni redosled izvršavanja</div>
+<div class="order-row">
+<span class="or">#01</span> GSAP drum roll visibility fix (DrawPage) — bez ovoga animacija nije vidljiva<br>
+<span class="or">#02</span> GSAP winner banner + winner list fix via useEffect (DrawPage)<br>
+<span class="or">#03</span> Instagram following sandbox fix (instagramBio.ts)<br>
+<span class="oh">#04</span> Verify progress bar animacija (GiveawayPage)<br>
+<span class="om">#05</span> Copy Archive Link URL fix (DrawPage)
+</div>
+</div>
+
+</div><!-- end wrap -->
+
+<div class="pbar-wrap">
+<span class="pbl">Napredak v7</span>
+<div class="pbbar"><div class="pbfill" id="pbf"></div></div>
+<span class="pbpct" id="pbp">0%</span>
+<span class="pbcnt" id="pbc">0 / 5 zavrseno</span>
+</div>
+
+<script>
+const TOTAL = 5;
+function tog(id){const b=document.getElementById('b-'+id);const t=document.getElementById('tog-'+id);if(!b)return;b.classList.toggle('open');t.classList.toggle('open');}
+function tick(e,id){e.stopPropagation();const card=document.getElementById(id);const box=card.querySelector('.cbox');const on=box.classList.toggle('ticked');box.textContent=on?'v':'';card.classList.toggle('done-card',on);save();updateBar();updateCounts();}
+function cp(pid){const el=document.getElementById(pid);if(!el)return;const text=el.textContent.trim();const btns=document.querySelectorAll('[onclick="cp(\''+pid+'\')"]');navigator.clipboard.writeText(text).then(()=>{btns.forEach(b=>{b.textContent='COPIED!';b.classList.add('ok');});setTimeout(()=>btns.forEach(b=>{b.textContent='COPY';b.classList.remove('ok');}),2200);}).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});}
+function doFilter(type,btn){document.querySelectorAll('.fbtn').forEach(b=>{b.classList.remove('on','oo','oy','og','oc');});btn.classList.add('on');if(type==='all')btn.classList.add('oc');if(type==='h')btn.classList.add('oo');if(type==='m')btn.classList.add('oy');if(type==='done')btn.classList.add('og');document.querySelectorAll('.card').forEach(card=>{const p=card.dataset.p;const done=card.classList.contains('done-card');if(type==='all'){card.classList.remove('hidden');return;}if(type==='done'){card.classList.toggle('hidden',!done);return;}card.classList.toggle('hidden',p!==type);});}
+function updateBar(){const done=document.querySelectorAll('.cbox.ticked').length;const pct=Math.round((done/TOTAL)*100);document.getElementById('pbf').style.width=pct+'%';document.getElementById('pbp').textContent=pct+'%';document.getElementById('pbc').textContent=done+' / '+TOTAL+' zavrseno';}
+function updateCounts(){['c','h','m'].forEach(p=>{const cards=document.querySelectorAll('.card[data-p="'+p+'"]');const done=[...cards].filter(c=>c.classList.contains('done-card')).length;const el=document.getElementById('cnt-'+p);if(el)el.textContent=cards.length-done;});document.getElementById('cnt-done').textContent=document.querySelectorAll('.cbox.ticked').length;}
+function save(){const s={};document.querySelectorAll('.card').forEach(c=>{s[c.id]=c.classList.contains('done-card');});try{localStorage.setItem('lootly_v7',JSON.stringify(s));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem('lootly_v7')||'{}');Object.entries(s).forEach(([id,done])=>{if(!done)return;const card=document.getElementById(id);if(!card)return;const box=card.querySelector('.cbox');box.classList.add('ticked');box.textContent='v';card.classList.add('done-card');});}catch(e){}updateBar();updateCounts();}
+window.addEventListener('load',()=>{load();setTimeout(()=>{document.getElementById('pbf').style.transition='width .8s ease';},200);});
+</script>
+</body>
+</html>

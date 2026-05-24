@@ -66,7 +66,7 @@ export async function scrapeInstagramBioForCode(
   const handle = instagramUsername.replace('@', '').trim().toLowerCase();
 
   if (process.env.SCRAPER_SANDBOX === 'true') {
-    console.log(`[Scraper/sandbox] Simulating bio check for @${handle}, code=${verificationCode}`);
+    console.log(`[Scraper/sandbox] Bypassing bio check for @${handle} — SCRAPER_SANDBOX=true, auto-passing code=${verificationCode}`);
     return {
       success: true,
       codeFound: true,
@@ -249,7 +249,16 @@ export async function scrapeFollowingList(username: string): Promise<ScrapeFollo
   const handle = username.replace('@', '').trim().toLowerCase();
 
   if (process.env.SCRAPER_SANDBOX === 'true') {
-    return { success: true, following: [], isPrivate: false, source: 'sandbox' };
+    console.log(`[Scraper/sandbox] Simulating following list for @${handle} — returning wildcard pass`);
+    // In sandbox mode, return a sentinel value. The caller (auditWinnerFollows) checks
+    // SCRAPER_SANDBOX itself and returns passed:true before calling this function,
+    // but as a safety net return a non-empty list that signals sandbox bypass.
+    return {
+      success: true,
+      following: ['__sandbox_wildcard__'],
+      isPrivate: false,
+      source: 'sandbox' as const,
+    };
   }
 
   let lastError: string | undefined;

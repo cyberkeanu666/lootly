@@ -58,11 +58,40 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
   const [starting, setStarting] = useState(false);
   const [winners, setWinners] = useState<string[]>([]);
   const [disqualified, setDisqualified] = useState<{ username: string; reason: string }[]>([]);
-  const [drumVisible, setDrumVisible] = useState(false);
   const [drumText, setDrumText] = useState('');
   const [showDrawAgain, setShowDrawAgain] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [countdownActive, setCountdownActive] = useState(false);
+  const [countdownNumber, setCountdownNumber] = useState(5);
+  const [verifyProgress, setVerifyProgress] = useState(0);
+  const [winnerUsername, setWinnerUsername] = useState('');
+
   const drumRef = useRef<HTMLDivElement>(null);
   const winnerSectionRef = useRef<HTMLDivElement>(null);
+  const winnerBannerRef = useRef<HTMLDivElement | null>(null);
+  const countdownRef = useRef<HTMLDivElement>(null);
+  const winnerRevealRef = useRef<HTMLDivElement>(null);
+
+  // Stored payload from draw:completed so we can apply it after the cinematic sequence
+  const pendingPayload = useRef<{
+    winners: string[];
+    disqualifiedList: { username: string; reason: string }[];
+    revealedSeed: string;
+  } | null>(null);
+
+  // Refs for cleanup of cinematic timers
+  const cinematicTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const countdownInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearCinematicTimers = () => {
+    cinematicTimers.current.forEach(clearTimeout);
+    cinematicTimers.current = [];
+    if (countdownInterval.current) {
+      clearInterval(countdownInterval.current);
+      countdownInterval.current = null;
+    }
+    setCountdown(null);
+  };
 
   const runDrumRoll = useCallback((finalName: string, onComplete: () => void) => {
     const el = drumRef.current;
@@ -71,7 +100,7 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
       return;
     }
 
-    setDrumVisible(true);
+    gsap.set(el, { visibility: 'visible', opacity: 1 });
     const fakeCount = 8 + Math.floor(Math.random() * 5);
     const pool = pickFakeNames(fakeCount);
     const fastSteps = Math.floor(1000 / 80);
@@ -99,8 +128,17 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
             duration: 0.4,
             ease: 'power2.out',
             onComplete: () => {
-              setDrumVisible(false);
-              onComplete();
+              gsap.to(el, {
+                opacity: 0,
+                scale: 0.9,
+                duration: 0.3,
+                delay: 0.6,
+                ease: 'power2.in',
+                onComplete: () => {
+                  gsap.set(el, { visibility: 'hidden' });
+                  onComplete();
+                },
+              });
             },
           }
         );
@@ -119,6 +157,84 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
       );
     });
   }, []);
+
+  // Cinematic sequence triggered after draw:completed fires (for spectators)
+  const startCinematicSequence = useCallback(
+    (payload: {
+      winners: string[];
+      disqualifiedList: { username: string; reason: string }[];
+      revealedSeed: string;
+    }) => {
+      clearCinematicTimers();
+      pendingPayload.current = payload;
+
+      const firstWinner = payload.winners[0] ?? 'winner';
+      setWinnerUsername(firstWinner);
+
+      // STEP 1 — Show countdown for 30 seconds
+      setStage('winner_drawn');
+      setStatusLine('Draw completed');
+      setDetailLine('');
+      setCountdown(30);
+
+      let tick = 30;
+      countdownInterval.current = setInterval(() => {
+        tick -= 1;
+        if (tick <= 0) {
+          if (countdownInterval.current) {
+            clearInterval(countdownInterval.current);
+            countdownInterval.current = null;
+          }
+          setCountdown(null);
+        } else {
+          setCountdown(tick);
+        }
+      }, 1000);
+
+      // STEP 2 — After 30s, run drum roll
+      const t1 = setTimeout(() => {
+        setCountdown(null);
+        setStatusLine(`Drawing winner…`);
+        runDrumRoll(firstWinner, () => {
+          // Drum roll finished → verifying stage
+          setStage('verifying');
+          setStatusLine('Verifying winner…');
+          setDetailLine('Checking profile follows…');
+
+          // STEP 3 — After 10s of verifying, pass and show winner
+          const t2 = setTimeout(() => {
+            setStage('winner_verified');
+            setStatusLine(`@${firstWinner} — verified ✓`);
+            setDetailLine('');
+            setWinners(payload.winners);
+            confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+
+            // STEP 4 — After 3s, move to completed
+            const t3 = setTimeout(() => {
+              setStage('completed');
+              setDisqualified(payload.disqualifiedList);
+              setDetailLine(
+                payload.winners.length
+                  ? `Winners: ${payload.winners.map((w) => `@${w}`).join(', ')}`
+                  : 'No winners selected'
+              );
+              setShowDrawAgain(false);
+
+              // Show Draw Again after 8 seconds
+              const t4 = setTimeout(() => {
+                setShowDrawAgain(true);
+              }, 8000);
+              cinematicTimers.current.push(t4);
+            }, 3000);
+            cinematicTimers.current.push(t3);
+          }, 10000);
+          cinematicTimers.current.push(t2);
+        });
+      }, 30000);
+      cinematicTimers.current.push(t1);
+    },
+    [runDrumRoll]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -164,6 +280,11 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
     };
   }, [slug]);
 
+  // Cleanup cinematic timers on unmount
+  useEffect(() => {
+    return () => clearCinematicTimers();
+  }, []);
+
   // Scroll to winner section when draw completes
   useEffect(() => {
     if (stage === 'completed' && winnerSectionRef.current) {
@@ -173,6 +294,60 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
     }
   }, [stage]);
 
+  // Animate countdown numbers
+  useEffect(() => {
+    if (countdownActive && countdownRef.current && countdownNumber > 0) {
+      const el = countdownRef.current;
+      gsap.fromTo(
+        el,
+        { scale: 2.5, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.35, ease: 'back.out(1.4)' }
+      );
+      gsap.to(el, {
+        opacity: 0,
+        scale: 0.8,
+        duration: 0.25,
+        delay: 0.55,
+      });
+    }
+  }, [countdownActive, countdownNumber]);
+
+  // Animate winner reveal
+  useEffect(() => {
+    if (stage === 'winner_drawn' && winnerRevealRef.current) {
+      gsap.fromTo(
+        winnerRevealRef.current,
+        { scale: 0.5, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(1.7)' }
+      );
+    }
+  }, [stage]);
+
+  // Animate winner confirmed banner
+  useEffect(() => {
+    if (stage === 'winner_verified' && winnerBannerRef.current) {
+      gsap.fromTo(
+        winnerBannerRef.current,
+        { scale: 0.5, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(1.7)' }
+      );
+    }
+  }, [stage]);
+
+  // Animate winner list items after React renders them
+  useEffect(() => {
+    if (stage === 'completed' && winners.length > 0) {
+      const id = setTimeout(() => {
+        gsap.from('.winner-list-item', {
+          y: 15,
+          opacity: 0,
+          stagger: 0.1,
+          duration: 0.4,
+        });
+      }, 80);
+      return () => clearTimeout(id);
+    }
+  }, [stage, winners]);
 
   useEffect(() => {
     if (!giveaway?.id) return;
@@ -205,6 +380,7 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
     socket.on(
       'draw:winner_drawn',
       (payload: { username: string; drawHash: string; winnerIndex: number; roundNumber: number }) => {
+        setWinnerUsername(payload.username);
         setStatusLine(`Drawing winner…`);
         setShowDrawAgain(false);
 
@@ -223,31 +399,8 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
       setDetailLine('Checking required profile follows');
     });
 
-    socket.on(
-      'draw:winner_verified',
-      (payload: { username: string; passed: boolean; missingProfiles: string[] }) => {
-        setStage('winner_verified');
-        if (payload.passed) {
-          setStatusLine(`@${payload.username} verified — winner confirmed`);
-          setDetailLine('');
-          confetti({ particleCount: 100, spread: 70, origin: { y: 0.55 } });
-          requestAnimationFrame(() => {
-            gsap.fromTo(
-              '#winner-banner',
-              { scale: 0.8, opacity: 0 },
-              { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
-            );
-          });
-        } else {
-          setStatusLine(`@${payload.username} disqualified`);
-          setDetailLine(
-            payload.missingProfiles.length
-              ? `Missing: ${payload.missingProfiles.map((p) => `@${p}`).join(', ')}`
-              : 'Follow audit failed'
-          );
-        }
-      }
-    );
+    // draw:winner_verified is intentionally ignored during cinematic sequence —
+    // the frontend controls the reveal timing itself via startCinematicSequence.
 
     socket.on(
       'draw:completed',
@@ -256,68 +409,132 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
         disqualifiedList: { username: string; reason: string }[];
         revealedSeed: string;
       }) => {
-        setStage('completed');
-        setWinners(payload.winners);
-        setDisqualified(payload.disqualifiedList);
-        setStatusLine('Draw completed');
-        setDetailLine(
-          payload.winners.length
-            ? `Winners: ${payload.winners.map((w) => `@${w}`).join(', ')}`
-            : 'No winners selected'
-        );
-        requestAnimationFrame(() => {
-          gsap.from('.winner-list-item', {
-            duration: 0.4,
-            y: 15,
-            opacity: 0,
-            stagger: 0.1,
-            ease: 'power2.out',
-          });
-        });
-        // Keep winner revealed for 6 seconds before allowing Draw Again
-        setShowDrawAgain(false);
-        setTimeout(() => {
-          setShowDrawAgain(true);
-        }, 6000);
+        // Kick off cinematic staged reveal instead of jumping to completed immediately
+        startCinematicSequence(payload);
       }
     );
 
     return () => {
       socket.disconnect();
     };
-  }, [giveaway?.id, runDrumRoll]);
+  }, [giveaway?.id, runDrumRoll, startCinematicSequence]);
 
   const handleStartDraw = useCallback(async () => {
     if (!giveaway || starting) return;
     setStarting(true);
-    setStatusLine('Starting draw on server…');
-    try {
-      const res = await authFetch(`/api/giveaway/draw-start/${giveaway.id}`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (res.status === 401) {
-        setStage('error');
-        setStatusLine('Session expired');
-        setDetailLine('Please log in again from the home page.');
-        return;
+    setCountdownActive(true);
+    setCountdownNumber(5);
+
+    // Countdown animation: 5 → 4 → 3 → 2 → 1
+    let current = 5;
+    const countdownInterval = setInterval(() => {
+      current -= 1;
+      if (current > 0) {
+        setCountdownNumber(current);
+      } else {
+        clearInterval(countdownInterval);
+        setCountdownActive(false);
+        setCountdownNumber(0);
+
+        // After countdown, call the API
+        authFetch(`/api/giveaway/draw-start/${giveaway.id}`, {
+          method: 'POST',
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            if (res.status === 401) {
+              setStage('error');
+              setStatusLine('Session expired');
+              setDetailLine('Please log in again from the home page.');
+              setStarting(false);
+              return;
+            }
+            if (!res.ok) {
+              setStage('error');
+              setStatusLine('Draw failed to start');
+              setDetailLine(data.error || 'Server error');
+              setStarting(false);
+              return;
+            }
+
+            const winner = data.winners?.[0];
+            if (winner) {
+              setWinnerUsername(winner);
+              setWinners(data.winners || []);
+              setDisqualified(data.disqualifiedList || []);
+
+              // Show drum roll with winner
+              runDrumRoll(winner, () => {
+                setStage('winner_drawn');
+                setStatusLine('Winner selected!');
+                setDetailLine('');
+
+                // Check if verification is needed
+                if (giveaway.requiredProfiles && giveaway.requiredProfiles.length > 0) {
+                  // Start verification phase after 2 seconds
+                  setTimeout(() => {
+                    setStage('verifying');
+                    setStatusLine(`Verifying @${winner}…`);
+                    setDetailLine('Checking required profile follows…');
+                    setVerifyProgress(0);
+
+                    // Animate progress bar over 10 seconds
+                    setTimeout(() => {
+                      setVerifyProgress(100);
+                    }, 50);
+
+                    // After 10 seconds, pass verification
+                    setTimeout(() => {
+                      setStage('winner_verified');
+                      setStatusLine('');
+                      setDetailLine('');
+                      confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+
+                      // Move to completed after 2 seconds
+                      setTimeout(() => {
+                        setStage('completed');
+                        setShowDrawAgain(false);
+
+                        // Show Draw Again after 8 seconds
+                        setTimeout(() => {
+                          setShowDrawAgain(true);
+                        }, 8000);
+                      }, 2000);
+                    }, 10000);
+                  }, 2000);
+                } else {
+                  // No verification needed, go straight to winner confirmed after 2 seconds
+                  setTimeout(() => {
+                    setStage('winner_verified');
+                    setStatusLine('');
+                    setDetailLine('');
+                    confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+
+                    // Move to completed after 2 seconds
+                    setTimeout(() => {
+                      setStage('completed');
+                      setShowDrawAgain(false);
+
+                      // Show Draw Again after 8 seconds
+                      setTimeout(() => {
+                        setShowDrawAgain(true);
+                      }, 8000);
+                    }, 2000);
+                  }, 2000);
+                }
+              });
+            }
+            setStarting(false);
+          })
+          .catch(() => {
+            setStage('error');
+            setStatusLine('Draw failed to start');
+            setDetailLine('Network error');
+            setStarting(false);
+          });
       }
-      if (!res.ok) {
-        setStage('error');
-        setStatusLine('Draw failed to start');
-        setDetailLine(data.error || 'Server error');
-        return;
-      }
-      setWinners(data.winners || []);
-      setDisqualified(data.disqualifiedList || []);
-    } catch {
-      setStage('error');
-      setStatusLine('Draw failed to start');
-      setDetailLine('Network error');
-    } finally {
-      setStarting(false);
-    }
-  }, [giveaway, starting]);
+    }, 900);
+  }, [giveaway, starting, runDrumRoll]);
 
   if (stage === 'loading') {
     return (
@@ -365,113 +582,164 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
                 : 'border-slate-800 bg-[#090f1d]'
           }`}
         >
-          <div className="flex justify-center mb-4">
-            {stage === 'completed' ? (
-              <Trophy className="h-10 w-10 text-amber-400" />
-            ) : stage === 'verifying' || stage === 'started' || starting ? (
-              <Loader2 className="h-10 w-10 text-amber-500 animate-spin" />
-            ) : (
-              <Trophy className="h-10 w-10 text-slate-600" />
-            )}
-          </div>
-
-          <div
-            ref={drumRef}
-            id="drum-display"
-            className={`mb-4 font-mono font-bold text-amber-400 text-center ${
-              drumVisible ? 'block' : 'hidden'
-            }`}
-            style={{ fontSize: '2rem' }}
-          >
-            {drumText}
-          </div>
-
-          <p
-            className={`text-lg font-semibold text-white ${
-              ['started', 'seed_revealed', 'winner_drawn', 'verifying'].includes(stage)
-                ? 'animate-pulse'
-                : ''
-            }`}
-          >
-            {statusLine}
-          </p>
-          {stage === 'winner_verified' && winners.length > 0 && (
-            <p
-              id="winner-banner"
-              className="text-xl font-bold text-emerald-400 mt-2"
-            >
-              🏆 Winner confirmed!
-            </p>
-          )}
-          {detailLine && (
-            <div id="seed-display">
-              <p className="text-xs text-slate-400 mt-3 font-mono leading-relaxed break-words">
-                {detailLine}
-              </p>
+          {/* Countdown overlay - full screen centered number */}
+          {countdownActive && countdownNumber > 0 && (
+            <div className="flex items-center justify-center py-12">
+              <div
+                ref={countdownRef}
+                className="text-9xl font-black text-white"
+              >
+                {countdownNumber}
+              </div>
             </div>
           )}
 
-          {stage === 'completed' && winners.length > 0 && (
-            <div ref={winnerSectionRef} className="mt-6 flex flex-col items-center gap-4">
-              <div className="flex flex-wrap justify-center gap-2">
+          {/* Winner drawn stage */}
+          {stage === 'winner_drawn' && !countdownActive && (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <Trophy className="h-16 w-16 text-amber-400" />
+              <div
+                ref={winnerRevealRef}
+                className="text-4xl font-bold text-amber-400 font-mono"
+              >
+                @{winnerUsername}
+              </div>
+              <p className="text-lg text-white font-semibold">{statusLine}</p>
+              {stage === 'verifying' && (
+                <div className="flex flex-col items-center gap-3 w-full max-w-xs mt-4">
+                  <Loader2 className="h-6 w-6 text-amber-500 animate-spin" />
+                  <p className="text-sm text-slate-400 font-mono">{detailLine}</p>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-amber-500 transition-all duration-[10000ms] ease-linear"
+                      style={{ width: `${verifyProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Winner verified stage */}
+          {stage === 'winner_verified' && (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <div className="h-16 w-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <Trophy className="h-10 w-10 text-emerald-400" />
+              </div>
+              <p
+                ref={(el) => { winnerBannerRef.current = el; }}
+                className="text-3xl font-bold text-emerald-400 font-mono"
+              >
+                @{winnerUsername}
+              </p>
+              <p className="text-xl text-white font-semibold">🏆 Winner confirmed!</p>
+              <button
+                type="button"
+                onClick={() => onSelectRoute?.(`/giveaway/${slug}/archive`)}
+                className="mt-4 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold rounded-xl transition cursor-pointer"
+              >
+                View Proof Archive
+              </button>
+            </div>
+          )}
+
+          {/* Completed stage */}
+          {stage === 'completed' && (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <div ref={winnerSectionRef} className="flex flex-wrap justify-center gap-2 mb-4">
                 {winners.map((w) => (
                   <span
                     key={w}
-                    className="winner-list-item px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-sm font-bold font-mono"
+                    className="winner-list-item px-4 py-2 rounded-full bg-amber-500 text-slate-950 text-base font-bold font-mono"
                   >
                     @{w}
                   </span>
                 ))}
               </div>
-              {/* Proof Archive link — always visible after completed */}
-              <div className="mt-1">
+              <div className="flex flex-wrap justify-center gap-3 mt-4">
                 <button
                   type="button"
                   onClick={() => onSelectRoute?.(`/giveaway/${slug}/archive`)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-mono hover:bg-emerald-500/20 transition cursor-pointer"
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2"
                 >
-                  🔒 View Proof Archive
+                  � View Proof Archive
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigator.clipboard
+                      .writeText(`${window.location.origin}/#/giveaway/${slug}/archive`)
+                      .then(() => alert('Archive link copied!'))
+                  }
+                  className="px-5 py-2.5 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold rounded-xl transition cursor-pointer"
+                >
+                  🔗 Copy Archive Link
                 </button>
               </div>
             </div>
           )}
 
-          {disqualified.length > 0 && (
-            <div className="mt-4 text-left text-[11px] text-red-300/90 font-mono space-y-1">
-              <p className="text-red-400 uppercase text-[10px] font-bold">Disqualified</p>
-              {disqualified.map((d) => (
-                <p key={d.username}>
-                  @{d.username} — {d.reason}
-                </p>
-              ))}
-            </div>
-          )}
+          {/* Default status display for other stages */}
+          {!countdownActive && stage !== 'winner_drawn' && stage !== 'winner_verified' && stage !== 'completed' && (
+            <>
+              <div className="flex justify-center mb-4">
+                {stage === 'verifying' || stage === 'started' || starting ? (
+                  <Loader2 className="h-10 w-10 text-amber-500 animate-spin" />
+                ) : (
+                  <Trophy className="h-10 w-10 text-slate-600" />
+                )}
+              </div>
 
-          {stage === 'completed' && (
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => onSelectRoute?.(`/giveaway/${slug}/archive`)}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2"
+              {/* Drum roll display — visibility controlled entirely by GSAP */}
+              <div
+                ref={drumRef}
+                id="drum-display"
+                className="mb-4 font-mono font-bold text-amber-400 text-center"
+                style={{ fontSize: '2.5rem', visibility: 'hidden' }}
               >
-                📋 View Public Proof Archive
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  navigator.clipboard
-                    .writeText(`${window.location.origin}/giveaway/${slug}/archive`)
-                    .then(() => alert('Archive link copied!'))
-                }
-                className="px-5 py-2.5 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold rounded-xl transition cursor-pointer"
+                {drumText}
+              </div>
+
+              <p
+                className={`text-lg font-semibold text-white ${
+                  ['started', 'seed_revealed', 'winner_drawn', 'verifying'].includes(stage)
+                    ? 'animate-pulse'
+                    : ''
+                }`}
               >
-                🔗 Copy Archive Link
-              </button>
-            </div>
+                {statusLine}
+              </p>
+
+              {/* Countdown ticker shown during the 30s hold after draw:completed (for spectators) */}
+              {countdown !== null && (
+                <p className="text-sm text-slate-500 font-mono mt-2">
+                  Revealing winner in {countdown}…
+                </p>
+              )}
+
+              {detailLine && (
+                <div id="seed-display">
+                  <p className="text-xs text-slate-400 mt-3 font-mono leading-relaxed break-words">
+                    {detailLine}
+                  </p>
+                </div>
+              )}
+
+              {disqualified.length > 0 && (
+                <div className="mt-4 text-left text-[11px] text-red-300/90 font-mono space-y-1">
+                  <p className="text-red-400 uppercase text-[10px] font-bold">Disqualified</p>
+                  {disqualified.map((d) => (
+                    <p key={d.username}>
+                      @{d.username} — {d.reason}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {isHost && stage !== 'completed' && (
+        {isHost && stage !== 'completed' && !countdownActive && (
           <button
             type="button"
             onClick={handleStartDraw}
@@ -500,7 +768,6 @@ export default function DrawPage({ slug, onSelectRoute }: DrawPageProps) {
             Spectating — waiting for host to start the draw
           </p>
         )}
-
       </div>
     </div>
   );

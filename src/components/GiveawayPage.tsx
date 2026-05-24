@@ -88,15 +88,33 @@ export default function GiveawayPage({
     setVerifyStep(1);
     setVerifyMessage('Checking your Instagram profile…');
 
+    await new Promise((r) => setTimeout(r, 400));
     setVerifyStep(2);
     setVerifyMessage('Looking for your verification code in bio…');
 
+    // Animate progress during the long polling wait
+    const progressSteps: Array<{ delay: number; step: number; message: string }> = [
+      { delay: 8000,  step: 2, message: 'Crawling Instagram profile page…' },
+      { delay: 20000, step: 3, message: 'Reading bio content…' },
+      { delay: 45000, step: 3, message: 'Checking verification code match…' },
+      { delay: 65000, step: 4, message: 'Almost done, finishing up…' },
+    ];
+
+    const timers = progressSteps.map(({ delay, step, message }) =>
+      setTimeout(() => {
+        setVerifyStep(step);
+        setVerifyMessage(message);
+      }, delay)
+    );
+
     const res = await onVerifyRequest(participantId);
 
-    if (res?.stage) {
-      setVerifyMessage('Finalizing verification…');
-      setVerifyStep(5);
-    }
+    // Cancel pending progress timers
+    timers.forEach(clearTimeout);
+
+    setVerifyStep(5);
+    setVerifyMessage('Finalizing verification…');
+    await new Promise((r) => setTimeout(r, 300));
     setIsVerifying(false);
 
     if (res && res.success) {
